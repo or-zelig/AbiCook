@@ -16,6 +16,9 @@
         <action
             android:id="@+id/action_loginFragment_to_homeFeedFragment"
             app:destination="@id/homeFeedFragment" />
+        <action
+            android:id="@+id/action_loginFragment_to_recipeFeedFragment"
+            app:destination="@id/recipeFeedFragment" />
     </fragment>
 
     <fragment
@@ -54,6 +57,17 @@
         android:name="il.co.or.abicook.presentation.home.CreateRecipeFragment"
         android:label="Create Recipe"
         tools:layout="@layout/fragment_create_recipe" />
+
+    <fragment
+        android:id="@+id/recipeFeedFragment"
+        android:name="il.co.or.abicook.presentation.home.RecipeFeedFragment"
+        android:label="Recipes"
+        tools:layout="@layout/fragment_recipe_feed">
+
+        <action
+            android:id="@+id/action_recipeFeedFragment_to_createRecipeFragment"
+            app:destination="@id/createRecipeFragment" />
+    </fragment>
 
 
 </navigation>
