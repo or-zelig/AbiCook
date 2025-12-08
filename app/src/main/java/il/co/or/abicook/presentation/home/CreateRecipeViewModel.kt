@@ -6,6 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import il.co.or.abicook.data.model.Recipe
+import il.co.or.abicook.data.repository.RecipeRepositoryProvider
+import java.util.UUID
+
 
 enum class CreateRecipeStep {
     BASIC,
@@ -25,6 +29,8 @@ class CreateRecipeViewModel : ViewModel() {
 
     private val _uiState = MutableLiveData(CreateRecipeUiState())
     val uiState: LiveData<CreateRecipeUiState> = _uiState
+    private val repository = RecipeRepositoryProvider.recipeRepository
+
 
     fun goToIngredients() {
         _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.INGREDIENTS)
@@ -55,32 +61,31 @@ class CreateRecipeViewModel : ViewModel() {
         ingredientsSummary: String,
         stepsSummary: String
     ) {
-        if (title.isBlank() || description.isBlank()
-            || ingredientsSummary.isBlank() || stepsSummary.isBlank()
-        ) {
-            _uiState.value = _uiState.value?.copy(
-                error = "All fields are required before publishing"
-            )
-            return
-        }
+        // מציין שאנחנו מתחילים "עבודה"
+        _uiState.value = _uiState.value?.copy(
+            isLoading = true,
+            error = null
+        )
 
-        viewModelScope.launch {
-            _uiState.value = _uiState.value?.copy(
-                isLoading = true,
-                error = null,
-                success = false
-            )
+        val recipe = Recipe(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            description = description,
+            ingredientsSummary = ingredientsSummary,
+            stepsSummary = stepsSummary,
+            createdAtMillis = System.currentTimeMillis()
+        )
 
-            // TODO: לשים כאן Firestore בהמשך
-            delay(800)
+        // שמירה ב-InMemory repository
+        repository.addRecipe(recipe)
 
-            _uiState.value = CreateRecipeUiState(
-                step = CreateRecipeStep.SUMMARY,
-                isLoading = false,
-                success = true
-            )
-        }
+        // סימון הצלחה
+        _uiState.value = _uiState.value?.copy(
+            isLoading = false,
+            success = true
+        )
     }
+
 
     fun resetSuccess() {
         _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.BASIC)
