@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="il.co.or.abicook.presentation.auth.LoginFragment"
+        android:label="Login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_loginFragment_to_signUpFragment"
+            app:destination="@id/signUpFragment" />
+        <action
+            android:id="@+id/action_loginFragment_to_homeFeedFragment"
+            app:destination="@id/homeFeedFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/homeFeedFragment"
+        android:name="il.co.or.abicook.presentation.home.HomeFeedFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home_feed">
+
+        <action
+            android:id="@+id/action_homeFeedFragment_to_createRecipeFragment"
+            app:destination="@id/createRecipeFragment" />
+
+    </fragment>
+
+
+    <fragment
+        android:id="@+id/signUpFragment"
+        android:name="il.co.or.abicook.presentation.auth.SignUpFragment"
+        android:label="Sign Up"
+        tools:layout="@layout/fragment_sign_up">
+
+        <action
+            android:id="@+id/action_signUpFragment_to_homeFeedFragment"
+            app:destination="@id/homeFeedFragment" />
+
+        <!-- הוספה חדשה: חזרה ללוגין -->
+        <action
+            android:id="@+id/action_signUpFragment_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="false" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createRecipeFragment"
+        android:name="il.co.or.abicook.presentation.home.CreateRecipeFragment"
+        android:label="Create Recipe"
+        tools:layout="@layout/fragment_create_recipe" />
+
+
+</navigation>
