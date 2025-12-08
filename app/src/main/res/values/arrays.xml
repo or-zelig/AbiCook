@@ -12,4 +12,16 @@
         <item>piece</item>
     </string-array>
 
+    <string-array name="recipe_categories">
+        <item>Pasta</item>
+        <item>Chicken</item>
+        <item>Meat</item>
+        <item>Fish</item>
+        <item>Dessert</item>
+        <item>Vegan</item>
+        <item>Vegetarian</item>
+        <item>Gluten free</item>
+        <item>Quick (under 30 min)</item>
+    </string-array>
+
 </resources>
