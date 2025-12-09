@@ -5,6 +5,11 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/loginFragment">
 
+    <!-- GLOBAL ACTION -->
+    <action
+        android:id="@+id/action_global_createRecipeFragment"
+        app:destination="@id/createRecipeFragment" />
+
     <fragment
         android:id="@+id/loginFragment"
         android:name="il.co.or.abicook.presentation.auth.LoginFragment"
@@ -67,7 +72,29 @@
         <action
             android:id="@+id/action_recipeFeedFragment_to_createRecipeFragment"
             app:destination="@id/createRecipeFragment" />
+
+        <action
+            android:id="@+id/action_recipeFeedFragment_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+
     </fragment>
 
+    <fragment
+        android:id="@+id/myRecipesFragment"
+        android:name="il.co.or.abicook.presentation.home.MyRecipesFragment"
+        android:label="MyRecipes"
+        tools:layout="@layout/fragment_recipe_feed">
 
+        <action
+            android:id="@+id/action_myRecipesFragment_to_createRecipeFragment"
+            app:destination="@id/createRecipeFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/myAreaFragment"
+        android:name="il.co.or.abicook.presentation.home.MyAreaFragment"
+        android:label="MyArea"
+        tools:layout="@layout/fragment_my_area" />
 </navigation>

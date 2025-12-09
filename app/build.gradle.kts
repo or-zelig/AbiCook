@@ -76,15 +76,13 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 
-    // Firebase BoM – שולט על גרסאות
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    // Firebase BoM – גרסה שמתאימה לקוטלין 1.9
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
-    // Firebase Auth (כרגע נשתמש בעיקר בזה)
-    implementation("com.google.firebase:firebase-auth")
-
-    // נוסיף כבר גם Firestore ו־Storage לשימוש עתידי
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-storage")
+    // גרסאות מפורשות, בלי -ktx (זה בסדר גמור לקוטלין)
+    implementation("com.google.firebase:firebase-auth:23.1.0")
+    implementation("com.google.firebase:firebase-firestore:25.1.1")
+    implementation("com.google.firebase:firebase-storage:21.0.1")
 
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")

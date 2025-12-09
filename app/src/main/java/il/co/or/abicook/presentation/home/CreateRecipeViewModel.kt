@@ -3,9 +3,7 @@ package il.co.or.abicook.presentation.home
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 import il.co.or.abicook.data.model.Recipe
 import il.co.or.abicook.data.repository.RecipeRepositoryProvider
 import java.util.UUID
@@ -30,7 +28,12 @@ class CreateRecipeViewModel : ViewModel() {
     private val _uiState = MutableLiveData(CreateRecipeUiState())
     val uiState: LiveData<CreateRecipeUiState> = _uiState
     private val repository = RecipeRepositoryProvider.recipeRepository
+    private val auth = FirebaseAuth.getInstance()
 
+
+    fun onHandledSuccess() {
+        _uiState.value = _uiState.value?.copy(success = false)
+    }
 
     fun goToIngredients() {
         _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.INGREDIENTS)
@@ -61,10 +64,20 @@ class CreateRecipeViewModel : ViewModel() {
         ingredientsSummary: String,
         stepsSummary: String
     ) {
-        // מציין שאנחנו מתחילים "עבודה"
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            _uiState.value = _uiState.value?.copy(
+                error = "You must be logged in to publish a recipe",
+                isLoading = false,
+                success = false
+            )
+            return
+        }
+
         _uiState.value = _uiState.value?.copy(
             isLoading = true,
-            error = null
+            error = null,
+            success = false
         )
 
         val recipe = Recipe(
@@ -73,18 +86,32 @@ class CreateRecipeViewModel : ViewModel() {
             description = description,
             ingredientsSummary = ingredientsSummary,
             stepsSummary = stepsSummary,
-            createdAtMillis = System.currentTimeMillis()
+            createdAtMillis = System.currentTimeMillis(),
+            authorId = currentUser.uid
         )
 
-        // שמירה ב-InMemory repository
-        repository.addRecipe(recipe)
-
-        // סימון הצלחה
-        _uiState.value = _uiState.value?.copy(
-            isLoading = false,
-            success = true
-        )
+        repository.addRecipe(recipe) { success, errorMessage ->
+            if (success) {
+                _uiState.postValue(
+                    _uiState.value?.copy(
+                        isLoading = false,
+                        success = true,
+                        error = null
+                    )
+                )
+            } else {
+                _uiState.postValue(
+                    _uiState.value?.copy(
+                        isLoading = false,
+                        success = false,
+                        error = errorMessage ?: "Failed to publish recipe"
+                    )
+                )
+            }
+        }
     }
+
+
 
 
     fun resetSuccess() {
