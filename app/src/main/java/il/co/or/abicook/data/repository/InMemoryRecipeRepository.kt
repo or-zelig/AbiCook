@@ -9,10 +9,15 @@ object InMemoryRecipeRepository : RecipeRepository {
     private val _recipes = MutableLiveData<List<Recipe>>(emptyList())
     override val recipes: LiveData<List<Recipe>> = _recipes
 
-    override fun addRecipe(recipe: Recipe) {
+    override fun addRecipe(
+        recipe: Recipe,
+        onResult: (Boolean, String?) -> Unit
+    ) {
         val current = _recipes.value.orEmpty()
         _recipes.value = current + recipe
+        onResult(true, null)
     }
+
 
     override fun getRecipe(id: String): Recipe? {
         return _recipes.value.orEmpty().firstOrNull { it.id == id }

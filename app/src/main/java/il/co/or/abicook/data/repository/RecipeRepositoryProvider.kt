@@ -1,5 +1,6 @@
 package il.co.or.abicook.data.repository
 
 object RecipeRepositoryProvider {
-    val recipeRepository: RecipeRepository = InMemoryRecipeRepository
+    val recipeRepository: RecipeRepository = FirestoreRecipeRepository()
 }
+

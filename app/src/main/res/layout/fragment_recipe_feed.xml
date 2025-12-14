@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/tvFeedTitle"
+        android:id="@+id/tvScreenTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="CookShare – Recipes"
-        android:textSize="20sp"
+        android:text="Feed"
         android:textStyle="bold"
+        android:textSize="20sp"
         android:layout_marginBottom="12dp" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -27,7 +26,7 @@
         android:id="@+id/tvEmptyState"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No recipes yet. Create your first recipe!"
+        android:text="No recipes yet."
         android:gravity="center"
         android:layout_marginTop="8dp"
         android:visibility="gone" />

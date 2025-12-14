@@ -31,12 +31,14 @@ class RecipeFeedFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val tvTitle = view.findViewById<TextView>(R.id.tvScreenTitle)
         val rvRecipes = view.findViewById<RecyclerView>(R.id.rvRecipes)
         val tvEmptyState = view.findViewById<TextView>(R.id.tvEmptyState)
         val btnCreateRecipe = view.findViewById<MaterialButton>(R.id.btnCreateRecipe)
 
+        tvTitle.text = "Feed"
+
         val adapter = RecipeFeedAdapter { recipe ->
-            // לעת עתה – רק טוסט. אחר כך נעבור למסך פרטי מתכון.
             Toast.makeText(
                 requireContext(),
                 "Clicked: ${recipe.title}",
@@ -47,23 +49,18 @@ class RecipeFeedFragment : Fragment() {
         rvRecipes.layoutManager = LinearLayoutManager(requireContext())
         rvRecipes.adapter = adapter
 
-        // observe רשימת מתכונים מהריפו
         repository.recipes.observe(viewLifecycleOwner, Observer { recipes ->
             adapter.submitList(recipes)
             tvEmptyState.visibility = if (recipes.isEmpty()) View.VISIBLE else View.GONE
         })
 
-        // ניווט למסך יצירת מתכון
         btnCreateRecipe.setOnClickListener {
-            // נניח שיש לך action מ-RecipeFeedFragment ל-CreateRecipeFragment
-            // אם אין עדיין – תראה חלק 5 למטה.
             findNavController().navigate(R.id.action_recipeFeedFragment_to_createRecipeFragment)
         }
     }
 }
 
-/* -------- Adapter -------- */
-
+/* Adapter משותף גם למסך MyRecipes */
 private class RecipeDiffCallback : DiffUtil.ItemCallback<Recipe>() {
     override fun areItemsTheSame(oldItem: Recipe, newItem: Recipe): Boolean =
         oldItem.id == newItem.id
