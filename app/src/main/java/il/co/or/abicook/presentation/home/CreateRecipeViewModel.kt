@@ -62,54 +62,45 @@ class CreateRecipeViewModel : ViewModel() {
         title: String,
         description: String,
         ingredientsSummary: String,
-        stepsSummary: String
+        stepsSummary: String,
+        primaryCategory: String,
+        categories: List<String>,
+        prepTimeMin: Int,
+        cookTimeMin: Int
     ) {
-        val currentUser = auth.currentUser
-        if (currentUser == null) {
-            _uiState.value = _uiState.value?.copy(
-                error = "You must be logged in to publish a recipe",
-                isLoading = false,
-                success = false
-            )
+        val currentUser = auth.currentUser ?: run {
+            _uiState.value = _uiState.value?.copy(error = "You must be logged in to publish a recipe")
             return
         }
 
-        _uiState.value = _uiState.value?.copy(
-            isLoading = true,
-            error = null,
-            success = false
-        )
+        _uiState.value = _uiState.value?.copy(isLoading = true, error = null, success = false)
 
         val recipe = Recipe(
-            id = UUID.randomUUID().toString(),
             title = title,
             description = description,
             ingredientsSummary = ingredientsSummary,
             stepsSummary = stepsSummary,
+            primaryCategory = primaryCategory,
+            categories = categories,
+            prepTimeMin = prepTimeMin,
+            cookTimeMin = cookTimeMin,
+            imageUrl = null, // בשלב הבא נשים תמונה
             createdAtMillis = System.currentTimeMillis(),
-            authorId = currentUser.uid
+            authorId = currentUser.uid,
+            authorName = currentUser.displayName ?: "Unknown",
+            likes = 0,
+            commentsCount = 0
         )
 
         repository.addRecipe(recipe) { success, errorMessage ->
             if (success) {
-                _uiState.postValue(
-                    _uiState.value?.copy(
-                        isLoading = false,
-                        success = true,
-                        error = null
-                    )
-                )
+                _uiState.postValue(_uiState.value?.copy(isLoading = false, success = true, error = null))
             } else {
-                _uiState.postValue(
-                    _uiState.value?.copy(
-                        isLoading = false,
-                        success = false,
-                        error = errorMessage ?: "Failed to publish recipe"
-                    )
-                )
+                _uiState.postValue(_uiState.value?.copy(isLoading = false, success = false, error = errorMessage))
             }
         }
     }
+
 
 
 

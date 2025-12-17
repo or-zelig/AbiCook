@@ -15,13 +15,13 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.auth.FirebaseAuth
 import il.co.or.abicook.R
-import il.co.or.abicook.data.repository.FakeFeedRepository
+import il.co.or.abicook.data.repository.FirestoreFeedRepository
 
 class   HomeFeedFragment : Fragment() {
 
     // שים לב: generic <HomeFeedViewModel> + import למעלה
     private val viewModel: HomeFeedViewModel by viewModels<HomeFeedViewModel> {
-        HomeFeedViewModelFactory(FakeFeedRepository())
+        HomeFeedViewModelFactory(feedRepository = FirestoreFeedRepository())
     }
 
     private lateinit var adapter: RecipePostAdapter

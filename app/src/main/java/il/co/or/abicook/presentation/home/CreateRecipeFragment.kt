@@ -403,12 +403,26 @@ class CreateRecipeFragment : Fragment() {
             return
         }
 
-        // אפשר גם לחשב זמן כולל / קטגוריות אם תרצה לשמור אחר כך
+        val prep = etPrepTime.text?.toString()?.trim()?.toIntOrNull() ?: 0
+        val cook = etCookTime.text?.toString()?.trim()?.toIntOrNull() ?: 0
+
+        val selected = chipGroupCategories.children
+            .mapNotNull { it as? Chip }
+            .filter { it.isChecked }
+            .map { it.text.toString() }
+            .toList()
+
+        val primaryCategory = selected.firstOrNull().orEmpty()
+
         viewModel.publishRecipe(
             title = title,
             description = description,
             ingredientsSummary = ingredientsSummary,
-            stepsSummary = stepsSummary
+            stepsSummary = stepsSummary,
+            primaryCategory = primaryCategory,
+            categories = selected,
+            prepTimeMin = prep,
+            cookTimeMin = cook
         )
     }
 
