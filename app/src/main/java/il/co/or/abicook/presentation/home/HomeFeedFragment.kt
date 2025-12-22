@@ -17,10 +17,9 @@ import com.google.firebase.auth.FirebaseAuth
 import il.co.or.abicook.R
 import il.co.or.abicook.data.repository.FirestoreFeedRepository
 
-class   HomeFeedFragment : Fragment() {
+class HomeFeedFragment : Fragment() {
 
-    // שים לב: generic <HomeFeedViewModel> + import למעלה
-    private val viewModel: HomeFeedViewModel by viewModels<HomeFeedViewModel> {
+    private val viewModel: HomeFeedViewModel by viewModels {
         HomeFeedViewModelFactory(feedRepository = FirestoreFeedRepository())
     }
 
@@ -30,7 +29,7 @@ class   HomeFeedFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? = inflater.inflate(R.layout.fragment_home_feed, container, false)
+    ): View = inflater.inflate(R.layout.fragment_home_feed, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -59,7 +58,6 @@ class   HomeFeedFragment : Fragment() {
         fabCreate.setOnClickListener {
             findNavController().navigate(R.id.action_homeFeedFragment_to_createRecipeFragment)
         }
-
 
         btnLogout.setOnClickListener {
             FirebaseAuth.getInstance().signOut()

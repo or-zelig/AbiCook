@@ -6,7 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import il.co.or.abicook.data.model.Recipe
 
-class FirestoreRecipeDataRepository : RecipeRepository {
+class FirestoreRecipeRepository : RecipeRepository {
 
     private val firestore = FirebaseFirestore.getInstance()
     private val recipesCollection = firestore.collection("recipes")

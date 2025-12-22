@@ -27,10 +27,7 @@ class HomeFeedViewModel(
 
             try {
                 val posts = feedRepository.getHomeFeed()
-                _uiState.value = HomeFeedUiState(
-                    isLoading = false,
-                    posts = posts
-                )
+                _uiState.value = HomeFeedUiState(isLoading = false, posts = posts)
             } catch (e: Exception) {
                 _uiState.value = HomeFeedUiState(
                     isLoading = false,
