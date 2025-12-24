@@ -10,6 +10,7 @@
         android:id="@+id/action_global_createRecipeFragment"
         app:destination="@id/createRecipeFragment" />
 
+    <!-- LOGIN ACTION -->
     <fragment
         android:id="@+id/loginFragment"
         android:name="il.co.or.abicook.presentation.auth.LoginFragment"
@@ -23,6 +24,7 @@
             app:destination="@id/homeFeedFragment" />
     </fragment>
 
+    <!-- HOME ACTION -->
     <fragment
         android:id="@+id/homeFeedFragment"
         android:name="il.co.or.abicook.presentation.home.HomeFeedFragment"
@@ -33,9 +35,17 @@
             android:id="@+id/action_homeFeedFragment_to_createRecipeFragment"
             app:destination="@id/createRecipeFragment" />
 
+        <action
+            android:id="@+id/action_homeFeedFragment_to_myAreaFragment"
+            app:destination="@id/myAreaFragment" />
+
+        <action
+            android:id="@+id/action_homeFeedFragment_to_loginFragment"
+            app:destination="@id/loginFragment" />
+
     </fragment>
 
-
+    <!-- SIGN ACTION -->
     <fragment
         android:id="@+id/signUpFragment"
         android:name="il.co.or.abicook.presentation.auth.SignUpFragment"
@@ -46,7 +56,6 @@
             android:id="@+id/action_signUpFragment_to_homeFeedFragment"
             app:destination="@id/homeFeedFragment" />
 
-        <!-- הוספה חדשה: חזרה ללוגין -->
         <action
             android:id="@+id/action_signUpFragment_to_loginFragment"
             app:destination="@id/loginFragment"
@@ -54,26 +63,28 @@
             app:popUpToInclusive="false" />
     </fragment>
 
+    <!-- CREATE ACTION -->
     <fragment
         android:id="@+id/createRecipeFragment"
         android:name="il.co.or.abicook.presentation.home.CreateRecipeFragment"
         android:label="Create Recipe"
-        tools:layout="@layout/fragment_create_recipe" />
-
-    <fragment
-        android:id="@+id/myRecipesFragment"
-        android:name="il.co.or.abicook.presentation.home.MyRecipesFragment"
-        android:label="MyRecipes"
-        tools:layout="@layout/fragment_recipe_feed">
-
+        tools:layout="@layout/fragment_create_recipe" >
         <action
-            android:id="@+id/action_myRecipesFragment_to_createRecipeFragment"
-            app:destination="@id/createRecipeFragment" />
+            android:id="@+id/action_createRecipeFragment_to_homeFeedFragment"
+            app:destination="@id/homeFeedFragment" />
     </fragment>
 
+    <!-- MY AREA ACTION -->
     <fragment
         android:id="@+id/myAreaFragment"
         android:name="il.co.or.abicook.presentation.home.MyAreaFragment"
         android:label="MyArea"
-        tools:layout="@layout/fragment_my_area" />
+        tools:layout="@layout/fragment_my_area" >
+        <action
+            android:id="@+id/action_myAreaFragment_to_homeFeedFragment"
+            app:destination="@id/homeFeedFragment" />
+        <action
+            android:id="@+id/action_myAreaFragment_to_loginFragment"
+            app:destination="@id/loginFragment" />
+    </fragment>
 </navigation>

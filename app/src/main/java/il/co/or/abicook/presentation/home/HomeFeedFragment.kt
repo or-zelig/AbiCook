@@ -20,13 +20,17 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.firebase.auth.FirebaseAuth
 import il.co.or.abicook.R
 import il.co.or.abicook.data.repository.FirestoreFeedRepository
-import il.co.or.abicook.domain.repository.FeedSort
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class HomeFeedFragment : Fragment() {
 
     private val viewModel: HomeFeedViewModel by viewModels {
         HomeFeedViewModelFactory(feedRepository = FirestoreFeedRepository())
     }
+    private val filterVm: FeedFilterViewModel by activityViewModels()
+
 
     private lateinit var adapter: RecipePostAdapter
 
@@ -58,7 +62,7 @@ class HomeFeedFragment : Fragment() {
         // Results UI
         val tvGreetingResults = view.findViewById<TextView>(R.id.tvGreetingResults)
         val rvFeed = view.findViewById<RecyclerView>(R.id.rvFeed)
-        val fabCreate = view.findViewById<FloatingActionButton>(R.id.fabCreate)
+        //val fabCreate = view.findViewById<FloatingActionButton>(R.id.fabCreate)
         val btnLogout = view.findViewById<MaterialButton>(R.id.btnLogout)
         val btnOpenFilters = view.findViewById<MaterialButton>(R.id.btnOpenFilters)
 
@@ -108,37 +112,75 @@ class HomeFeedFragment : Fragment() {
         panelResults.isVisible = false
 
         btnShow.setOnClickListener {
+
             val selectedCategories = (0 until chipGroup.childCount)
                 .map { chipGroup.getChildAt(it) }
                 .filterIsInstance<com.google.android.material.chip.Chip>()
                 .filter { it.isChecked }
                 .map { it.text.toString() }
 
-            val sort = when (rgSort.checkedRadioButtonId) {
-                R.id.rbMostLiked -> FeedSort.MOST_LIKED
-                else -> FeedSort.NEWEST
+            val sortOption = when (rgSort.checkedRadioButtonId) {
+                R.id.rbMostLiked -> il.co.or.abicook.domain.repository.FeedSort.MOST_LIKED
+                else -> il.co.or.abicook.domain.repository.FeedSort.NEWEST
             }
 
-            // כרגע: רק UI של זמן (הצגה). אם תרצה שהזמן גם יסנן נתונים בפועל – נוסיף אחרי שזה יציב.
-            viewModel.loadFeed(categories = selectedCategories, sort = sort)
+            filterVm.setState(
+                FeedFilterState(
+                    categories = selectedCategories.toSet(),
+                    sort = sortOption,
+                    limitTotalTime = switchTotalTime.isChecked,
+                    maxTotalTimeMin = if (switchTotalTime.isChecked) sliderTotalTime.value.toInt() else null
+                )
+            )
+
+            // אם אתה טוען פיד כאן:
+            viewModel.loadFeed(categories = selectedCategories, sort = sortOption)
 
             panelFilters.isVisible = false
             panelResults.isVisible = true
         }
+
 
         btnOpenFilters.setOnClickListener {
             panelResults.isVisible = false
             panelFilters.isVisible = true
         }
 
-        fabCreate.setOnClickListener {
+        /*.setOnClickListener {
             findNavController().navigate(R.id.action_global_createRecipeFragment)
 
         }
 
         btnLogout.setOnClickListener {
+            filterVm.clear()
             FirebaseAuth.getInstance().signOut()
             findNavController().navigate(R.id.loginFragment)
+        }*/
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            filterVm.state.collect { s ->
+                // restore categories chips
+                for (i in 0 until chipGroup.childCount) {
+                    val chip = chipGroup.getChildAt(i)
+                    if (chip is com.google.android.material.chip.Chip) {
+                        chip.isChecked = s.categories.contains(chip.text.toString())
+                    }
+                }
+
+                // restore sort radio
+                when (s.sort) {
+                    il.co.or.abicook.domain.repository.FeedSort.MOST_LIKED -> rgSort.check(R.id.rbMostLiked)
+                    else -> rgSort.check(R.id.rbNewest)
+                }
+
+                // restore time limit UI (אם יש לך)
+                switchTotalTime.isChecked = s.limitTotalTime
+                timeRangeContainer.isVisible = s.limitTotalTime
+                if (s.maxTotalTimeMin != null) {
+                    sliderTotalTime.value = s.maxTotalTimeMin.toFloat()
+                    tvTotalTimeValue.text = "${s.maxTotalTimeMin} דקות"
+                }
+            }
         }
     }
 }

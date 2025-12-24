@@ -1,74 +1,108 @@
 package il.co.or.abicook
 
 import android.os.Bundle
-import android.view.View
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
+import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.NavigationUI
+import androidx.navigation.navOptions
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.firebase.auth.FirebaseAuth
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.appcompat.app.AlertDialog
-
+import com.google.firebase.auth.FirebaseAuth
+import il.co.or.abicook.presentation.home.FeedFilterViewModel
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var bottomNavView: BottomNavigationView
+    private lateinit var navController: NavController
+
+    // כדי שנוכל לעשות clear() בפילטר ב-Logout
+    private val filterVm: FeedFilterViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
+        navController = navHost.navController
 
-        bottomNavView = findViewById(R.id.bottomNavView)
-        val fabCreateRecipe = findViewById<FloatingActionButton>(R.id.fabCreateRecipe)
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
+        val fab = findViewById<FloatingActionButton>(R.id.fabCreateRecipe)
 
-        // קישור אוטומטי בין bottom nav ל־nav graph
-        NavigationUI.setupWithNavController(bottomNavView, navController)
+        // + מכל מקום -> CreateRecipe
+        fab.setOnClickListener {
+            if (navController.currentDestination?.id != R.id.createRecipeFragment) {
+                navController.navigate(R.id.action_global_createRecipeFragment)
+            }
+        }
 
-        bottomNavView.setOnItemSelectedListener { item ->
+        // Bottom nav navigation + Logout handler
+        bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
+
                 R.id.nav_logout -> {
-                    AlertDialog.Builder(this)
-                        .setTitle("Logout")
-                        .setMessage("Are you sure you want to logout?")
-                        .setPositiveButton("Yes") { _, _ ->
-                            FirebaseAuth.getInstance().signOut()
-                            // חזרה למסך החיבור
-                            navController.navigate(R.id.loginFragment)
-                        }
-                        .setNegativeButton("Cancel", null)
-                        .show()
-                    true
+                    showLogoutDialog()
+                    false // לא מסמנים את הטאב כפעיל, כי זה לא דף
                 }
+
                 else -> {
-                    NavigationUI.onNavDestinationSelected(item, navController)
+                    // ניווט רגיל בין דפים (Feed/My area)
+                    val options = navOptions {
+                        // לא popUpTo(startDestinationId) כי אצלך זה loginFragment
+                        popUpTo(R.id.homeFeedFragment) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+
+                    try {
+                        navController.navigate(item.itemId, null, options)
+                        true
+                    } catch (e: IllegalArgumentException) {
+                        false
+                    }
                 }
             }
         }
 
+        // להציג/להסתיר BottomNav+FAB לפי מסך
         navController.addOnDestinationChangedListener { _, destination, _ ->
-            val hideOn = setOf(
-                R.id.loginFragment,
-                R.id.createRecipeFragment
-            )
+            val showChrome = destination.id == R.id.homeFeedFragment ||
+                    destination.id == R.id.myAreaFragment ||
+                    destination.id == R.id.createRecipeFragment
 
-            if (hideOn.contains(destination.id)) {
-                bottomNavView.visibility = View.GONE
-                fabCreateRecipe.visibility = View.GONE
-            } else {
-                bottomNavView.visibility = View.VISIBLE
-                fabCreateRecipe.visibility = View.VISIBLE
+            bottomNav.isVisible = showChrome
+            fab.isVisible = showChrome
+
+            // סימון טאב פעיל רק אם הוא אחד מהדפים
+            if (destination.id == R.id.homeFeedFragment || destination.id == R.id.myAreaFragment) {
+                bottomNav.menu.findItem(destination.id)?.isChecked = true
             }
         }
+    }
 
+    private fun showLogoutDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to logout?")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Logout") { _, _ ->
+                // ניקוי פילטרים
+                filterVm.clear()
 
-        fabCreateRecipe.setOnClickListener {
-            navController.navigate(R.id.action_global_createRecipeFragment)
-        }
+                // יציאה מהמשתמש
+                FirebaseAuth.getInstance().signOut()
 
+                // מעבר ל-Login וניקוי back stack
+                navController.navigate(
+                    R.id.loginFragment,
+                    null,
+                    navOptions {
+                        popUpTo(R.id.nav_graph) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                )
+            }
+            .show()
     }
 }

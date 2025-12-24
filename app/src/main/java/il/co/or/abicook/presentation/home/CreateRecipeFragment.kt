@@ -22,6 +22,7 @@ import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.launch
 
 
@@ -44,6 +45,8 @@ class CreateRecipeFragment : Fragment() {
     private lateinit var tvError: TextView
     private lateinit var progressBar: View
     private lateinit var btnPublish: MaterialButton
+
+    private lateinit var btnBack: MaterialToolbar
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -73,6 +76,7 @@ class CreateRecipeFragment : Fragment() {
         tvError = view.findViewById(R.id.tvError)
         progressBar = view.findViewById(R.id.progressBar)
         btnPublish = view.findViewById(R.id.btnPublishRecipe)
+        btnBack = view.findViewById(R.id.topAppBarCreateRecipe)
 
         // 3) Setup UI
         setupCategoriesChips()
@@ -83,6 +87,10 @@ class CreateRecipeFragment : Fragment() {
         btnAddIngredient.setOnClickListener { addIngredientView() }
         btnAddStep.setOnClickListener { addStepView() }
         btnPublish.setOnClickListener { publishRecipe() }
+
+        btnBack.setOnClickListener{
+            findNavController().popBackStack()
+        }
 
         // 4) Observe state (רק אחרי שכל מה למעלה מוכן)
         viewLifecycleOwner.lifecycleScope.launch {
@@ -192,11 +200,6 @@ class CreateRecipeFragment : Fragment() {
                 .text?.toString()?.trim()?.takeIf { it.isNotEmpty() }
         }.toList()
 
-    /**
-     * בונה את הצ'יפים של המצרכים לכל שלב:
-     * – כל צ'יפ מייצג מצרך
-     * – לחיצה על צ'יפ מוסיפה את השם לתיאור השלב (כדי שלא תצטרך לכתוב שוב)
-     */
     private fun refreshStepIngredientChips() {
         val ingredientNames = getIngredientNames()
 
@@ -425,6 +428,7 @@ class CreateRecipeFragment : Fragment() {
             cookTimeMin = cook
         )
 
+        findNavController().popBackStack()
 
     }
 
