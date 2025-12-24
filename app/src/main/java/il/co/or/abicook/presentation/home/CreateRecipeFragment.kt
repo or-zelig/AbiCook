@@ -11,9 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.children
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -21,6 +19,11 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import il.co.or.abicook.R
 import android.widget.ArrayAdapter
+import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
+
 
 class CreateRecipeFragment : Fragment() {
 
@@ -388,32 +391,12 @@ class CreateRecipeFragment : Fragment() {
             ingredientsSummary = ingredientsSummary,
             stepsSummary = stepsSummary,
             primaryCategory = primaryCategory,
-            categories = selectedCategories.toList(),
-            prepTimeMin = prepTimeMin,
-            cookTimeMin = cookTimeMin
+            categories = selected,
+            prepTimeMin = prep,
+            cookTimeMin = cook
         )
 
-    }
 
-    private fun observeViewModel() {
-        viewModel.uiState.observe(viewLifecycleOwner) { state ->
-            progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-            btnPublish.isEnabled = !state.isLoading
-
-            if (state.error != null) {
-                tvError.text = state.error
-                tvError.visibility = View.VISIBLE
-            } else {
-                tvError.visibility = View.GONE
-            }
-
-            if (state.success) {
-                showToast("Recipe published!")
-                clearForm()
-                findNavController().navigateUp()
-                viewModel.onHandledSuccess()
-            }
-        }
     }
 
     private fun clearForm() {

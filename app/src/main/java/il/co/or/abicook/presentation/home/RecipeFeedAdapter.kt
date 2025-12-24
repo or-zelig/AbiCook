@@ -26,7 +26,7 @@ class RecipeFeedAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         holder.b.tvTitle.text = item.title
-        holder.b.tvMeta.text = "❤ ${item.likes}  •  Total ${item.totalTime} min  •  ${item.category}"
+        holder.b.tvMeta.text = "❤ ${item.likes}"
         holder.b.root.setOnClickListener { onClick(item) }
     }
 }

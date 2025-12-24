@@ -4,24 +4,30 @@ import il.co.or.abicook.data.model.Recipe
 import il.co.or.abicook.domain.model.RecipePost
 
 object RecipeMapper {
+
     fun Recipe.toPost(currentUserId: String? = null): RecipePost {
         return RecipePost(
             id = id,
             title = title,
             description = description,
+            imageUrl = imageUrl,
+
+            authorId = authorId,
+            authorName = authorName.ifBlank { "Unknown" },
+
+            createdAtMillis = createdAtMillis,
+
+            likes = likes.toLong(),
+            commentsCount = commentsCount.toLong(),
+            isLikedByMe = false,
+
             ingredientsSummary = ingredientsSummary,
             stepsSummary = stepsSummary,
-            createdAtMillis = createdAtMillis,
-            authorId = authorId,
 
-            authorName = authorName.ifBlank { "Unknown" },
-            imageUrl = imageUrl,
-            likes = likes,
-            commentsCount = commentsCount,
-            isLikedByMe = false, // בהמשך נעשה לייקים אמיתי לפי user
-            category = primaryCategory,
-            prepTime = prepTimeMin,
-            cookTime = cookTimeMin
+            primaryCategory = primaryCategory,
+            categories = categories,
+            prepTimeMin = prepTimeMin,
+            cookTimeMin = cookTimeMin
         )
     }
 }

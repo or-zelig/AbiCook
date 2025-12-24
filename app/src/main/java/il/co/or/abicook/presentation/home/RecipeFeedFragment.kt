@@ -12,8 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import il.co.or.abicook.R
-import il.co.or.abicook.data.repository.RecipeFeedViewModel
 import kotlinx.coroutines.launch
+import il.co.or.abicook.presentation.home.RecipeFeedViewModel
 
 class RecipeFeedFragment : Fragment(R.layout.fragment_recipe_feed) {
 

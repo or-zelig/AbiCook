@@ -55,7 +55,7 @@ class HomeFeedFragment : Fragment() {
             adapter.submitList(state.posts)
         }
 
-        viewModel.startObservingFeed()
+        startObservingFeed()
 
         fabCreate.setOnClickListener {
             findNavController().navigate(R.id.action_homeFeedFragment_to_createRecipeFragment)
@@ -66,4 +66,10 @@ class HomeFeedFragment : Fragment() {
             findNavController().navigate(R.id.loginFragment)
         }
     }
+
+    private fun startObservingFeed() {
+        // טוען את הפיד פעם אחת (ה-ViewModel כבר מטפל בטעינה)
+        viewModel.loadFeed()
+    }
+
 }
