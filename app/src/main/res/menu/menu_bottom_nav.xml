@@ -9,8 +9,8 @@
         app:showAsAction="ifRoom" />
 
     <item
-        android:id="@+id/myAreaFragment"
-        android:title="My area"
+        android:id="@+id/myRecipesFragment"
+        android:title="My recipes"
         android:icon="@drawable/ic_location_24"
         app:showAsAction="ifRoom" />
 

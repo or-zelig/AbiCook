@@ -36,8 +36,8 @@
             app:destination="@id/createRecipeFragment" />
 
         <action
-            android:id="@+id/action_homeFeedFragment_to_myAreaFragment"
-            app:destination="@id/myAreaFragment" />
+            android:id="@+id/action_homeFeedFragment_to_myRecipesFragment"
+            app:destination="@id/myRecipesFragment" />
 
         <action
             android:id="@+id/action_homeFeedFragment_to_loginFragment"
@@ -76,15 +76,15 @@
 
     <!-- MY AREA ACTION -->
     <fragment
-        android:id="@+id/myAreaFragment"
-        android:name="il.co.or.abicook.presentation.home.MyAreaFragment"
+        android:id="@+id/myRecipesFragment"
+        android:name="il.co.or.abicook.presentation.home.MyRecipesFragment"
         android:label="MyArea"
-        tools:layout="@layout/fragment_my_area" >
+        tools:layout="@layout/fragment_my_recipes" >
         <action
-            android:id="@+id/action_myAreaFragment_to_homeFeedFragment"
+            android:id="@+id/action_MyRecipesFragment_to_homeFeedFragment"
             app:destination="@id/homeFeedFragment" />
         <action
-            android:id="@+id/action_myAreaFragment_to_loginFragment"
+            android:id="@+id/action_myRecipesFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
     </fragment>
 </navigation>
