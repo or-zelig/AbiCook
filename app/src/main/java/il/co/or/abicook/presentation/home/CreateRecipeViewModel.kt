@@ -1,62 +1,26 @@
 package il.co.or.abicook.presentation.home
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.google.firebase.auth.FirebaseAuth
-import il.co.or.abicook.data.model.Recipe
+import androidx.lifecycle.viewModelScope
 import il.co.or.abicook.data.repository.RecipeRepositoryProvider
-import java.util.UUID
-
-
-enum class CreateRecipeStep {
-    BASIC,
-    INGREDIENTS,
-    STEPS,
-    SUMMARY
-}
-
-data class CreateRecipeUiState(
-    val step: CreateRecipeStep = CreateRecipeStep.BASIC,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val success: Boolean = false
-)
+import il.co.or.abicook.domain.model.RecipePost
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class CreateRecipeViewModel : ViewModel() {
 
-    private val _uiState = MutableLiveData(CreateRecipeUiState())
-    val uiState: LiveData<CreateRecipeUiState> = _uiState
-    private val repository = RecipeRepositoryProvider.recipeRepository
-    private val auth = FirebaseAuth.getInstance()
+    // ✅ לא צריך ctor עם פרמטרים (ככה ViewModelProvider(this)[...] עובד בלי Factory)
+    private val recipeRepository = RecipeRepositoryProvider.provideRecipeRepository()
 
+    data class UiState(
+        val isLoading: Boolean = false,
+        val error: String? = null,
+        val publishSuccess: Boolean = false
+    )
 
-    fun onHandledSuccess() {
-        _uiState.value = _uiState.value?.copy(success = false)
-    }
-
-    fun goToIngredients() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.INGREDIENTS)
-    }
-
-    fun goToSteps() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.STEPS)
-    }
-
-    fun goToSummary() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.SUMMARY)
-    }
-
-    fun previous() {
-        val current = _uiState.value?.step ?: CreateRecipeStep.BASIC
-        val prev = when (current) {
-            CreateRecipeStep.BASIC -> CreateRecipeStep.BASIC
-            CreateRecipeStep.INGREDIENTS -> CreateRecipeStep.BASIC
-            CreateRecipeStep.STEPS -> CreateRecipeStep.INGREDIENTS
-            CreateRecipeStep.SUMMARY -> CreateRecipeStep.STEPS
-        }
-        _uiState.value = CreateRecipeUiState(step = prev)
-    }
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState: StateFlow<UiState> = _uiState
 
     fun publishRecipe(
         title: String,
@@ -68,44 +32,39 @@ class CreateRecipeViewModel : ViewModel() {
         prepTimeMin: Int,
         cookTimeMin: Int
     ) {
-        val currentUser = auth.currentUser ?: run {
-            _uiState.value = _uiState.value?.copy(error = "You must be logged in to publish a recipe")
-            return
-        }
+        viewModelScope.launch {
+            _uiState.value = UiState(isLoading = true)
 
-        _uiState.value = _uiState.value?.copy(isLoading = true, error = null, success = false)
+            val result = recipeRepository.createRecipe(
+                RecipePost(
+                    id = "",
+                    title = title.trim(),
+                    description = description.trim(),
+                    ingredientsSummary = ingredientsSummary.trim(),
+                    stepsSummary = stepsSummary.trim(),
+                    primaryCategory = primaryCategory.trim(),
+                    categories = categories,
+                    prepTimeMin = prepTimeMin,
+                    cookTimeMin = cookTimeMin
+                )
+            )
 
-        val recipe = Recipe(
-            title = title,
-            description = description,
-            ingredientsSummary = ingredientsSummary,
-            stepsSummary = stepsSummary,
-            primaryCategory = primaryCategory,
-            categories = categories,
-            prepTimeMin = prepTimeMin,
-            cookTimeMin = cookTimeMin,
-            imageUrl = null, // בשלב הבא נשים תמונה
-            createdAtMillis = System.currentTimeMillis(),
-            authorId = currentUser.uid,
-            authorName = currentUser.displayName ?: "Unknown",
-            likes = 0,
-            commentsCount = 0
-        )
-
-        repository.addRecipe(recipe) { success, errorMessage ->
-            if (success) {
-                _uiState.postValue(_uiState.value?.copy(isLoading = false, success = true, error = null))
-            } else {
-                _uiState.postValue(_uiState.value?.copy(isLoading = false, success = false, error = errorMessage))
-            }
+            result.fold(
+                onSuccess = {
+                    _uiState.value = UiState(publishSuccess = true)
+                },
+                onFailure = { e ->
+                    _uiState.value = UiState(error = e.message ?: "Unknown error")
+                }
+            )
         }
     }
 
+    fun onHandledSuccess() {
+        _uiState.value = _uiState.value.copy(publishSuccess = false)
+    }
 
-
-
-
-    fun resetSuccess() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.BASIC)
+    fun onHandledError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 }

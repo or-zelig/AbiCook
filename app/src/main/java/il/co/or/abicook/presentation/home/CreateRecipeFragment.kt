@@ -51,60 +51,28 @@ class CreateRecipeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Toolbar – חץ אחורה
-        val toolbar = view.findViewById<MaterialToolbar>(R.id.topAppBarCreateRecipe)
-        toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    // loading
+                    progressBar.isVisible = state.isLoading
+                    btnPublish.isEnabled = !state.isLoading
 
-        viewModel = ViewModelProvider(this)[CreateRecipeViewModel::class.java]
+                    // error
+                    state.error?.let {
+                        Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                        viewModel.onHandledError()
+                    }
 
-        etTitle = view.findViewById(R.id.etTitle)
-        etDescription = view.findViewById(R.id.etDescription)
-        etPrepTime = view.findViewById(R.id.etPrepTime)
-        etCookTime = view.findViewById(R.id.etCookTime)
-        chipGroupCategories = view.findViewById(R.id.chipGroupCategories)
-
-        containerIngredients = view.findViewById(R.id.containerIngredients)
-        btnAddIngredient = view.findViewById(R.id.btnAddIngredient)
-
-        containerSteps = view.findViewById(R.id.containerSteps)
-        btnAddStep = view.findViewById(R.id.btnAddStep)
-
-        tvError = view.findViewById(R.id.tvError)
-        progressBar = view.findViewById(R.id.progressBar)
-        btnPublish = view.findViewById(R.id.btnPublishRecipe)
-
-        setupCategoriesChips()
-
-        // מתחילים עם מצרך ושלב אחד
-        addIngredientView()
-        addStepView()
-        refreshStepIngredientChips()
-
-        btnAddIngredient.setOnClickListener {
-            if (validateLastIngredientFilled()) {
-                addIngredientView()
-                refreshStepIngredientChips()
-            } else {
-                showToast("Fill the current ingredient before adding a new one")
+                    // success
+                    if (state.publishSuccess) {
+                        Toast.makeText(requireContext(), "Recipe published!", Toast.LENGTH_SHORT).show()
+                        viewModel.onHandledSuccess()
+                        findNavController().popBackStack() // או ניווט למסך הקודם
+                    }
+                }
             }
         }
-
-        btnAddStep.setOnClickListener {
-            if (validateLastStepFilled()) {
-                addStepView()
-                refreshStepIngredientChips()
-            } else {
-                showToast("Fill the current step before adding a new one")
-            }
-        }
-
-        btnPublish.setOnClickListener {
-            publishRecipe()
-        }
-
-        observeViewModel()
     }
 
     // region UI helpers
@@ -420,10 +388,11 @@ class CreateRecipeFragment : Fragment() {
             ingredientsSummary = ingredientsSummary,
             stepsSummary = stepsSummary,
             primaryCategory = primaryCategory,
-            categories = selected,
-            prepTimeMin = prep,
-            cookTimeMin = cook
+            categories = selectedCategories.toList(),
+            prepTimeMin = prepTimeMin,
+            cookTimeMin = cookTimeMin
         )
+
     }
 
     private fun observeViewModel() {

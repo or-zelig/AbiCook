@@ -1,76 +1,80 @@
 package il.co.or.abicook.data.repository
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import il.co.or.abicook.data.model.Recipe
+import il.co.or.abicook.domain.model.RecipePost
+import kotlinx.coroutines.tasks.await
 
-class FirestoreRecipeRepository : RecipeRepository {
+class FirestoreRecipeDataRepository(
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+) {
 
-    private val firestore = FirebaseFirestore.getInstance()
-    private val recipesCollection = firestore.collection("recipes")
+    private val recipesCol = db.collection("recipes")
 
-    private val _recipes = MutableLiveData<List<Recipe>>(emptyList())
-    override val recipes: LiveData<List<Recipe>> = _recipes
-
-    init {
-        recipesCollection
+    suspend fun loadFeed(limit: Long = 50): List<RecipePost> {
+        val snap = recipesCol
             .orderBy("createdAtMillis", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) return@addSnapshotListener
+            .limit(limit)
+            .get()
+            .await()
 
-                val list = snapshot?.documents?.mapNotNull { doc ->
-                    val title = doc.getString("title") ?: return@mapNotNull null
-                    val description = doc.getString("description") ?: ""
-                    Recipe(
-                        id = doc.id,
-                        title = title,
-                        description = description,
-                        ingredientsSummary = doc.getString("ingredientsSummary") ?: "",
-                        stepsSummary = doc.getString("stepsSummary") ?: "",
-                        createdAtMillis = doc.getLong("createdAtMillis") ?: 0L,
-                        authorId = doc.getString("authorId") ?: "",
-                        imageUrl = doc.getString("imageUrl")
-                    )
-                } ?: emptyList()
+        val myUid = auth.currentUser?.uid.orEmpty()
 
-                _recipes.value = list
-            }
+        return snap.documents.map { doc ->
+            RecipePost(
+                id = doc.id,
+                title = doc.getString("title").orEmpty(),
+                description = doc.getString("description").orEmpty(),
+                imageUrl = doc.getString("imageUrl"),
+
+                authorId = doc.getString("authorId").orEmpty(),
+                authorName = doc.getString("authorName").orEmpty(),
+
+                createdAtMillis = doc.getLong("createdAtMillis") ?: 0L,
+                likes = doc.getLong("likes") ?: 0L,
+                commentsCount = doc.getLong("commentsCount") ?: 0L,
+
+                // כרגע אין לך likes-by-user, אז נשאיר false
+                isLikedByMe = false,
+
+                ingredientsSummary = doc.getString("ingredientsSummary").orEmpty(),
+                stepsSummary = doc.getString("stepsSummary").orEmpty(),
+
+                primaryCategory = doc.getString("primaryCategory").orEmpty(),
+                categories = (doc.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                prepTimeMin = (doc.getLong("prepTimeMin") ?: 0L).toInt(),
+                cookTimeMin = (doc.getLong("cookTimeMin") ?: 0L).toInt()
+            )
+        }
     }
 
-    override fun addRecipe(
-        recipe: Recipe,
-        onResult: (Boolean, String?) -> Unit
-    ) {
+    suspend fun createRecipe(post: RecipePost): String {
+        val uid = auth.currentUser?.uid ?: error("Not logged in")
+
         val data = hashMapOf(
-            "title" to recipe.title,
-            "description" to recipe.description,
-            "ingredientsSummary" to recipe.ingredientsSummary,
-            "stepsSummary" to recipe.stepsSummary,
+            "title" to post.title,
+            "description" to post.description,
+            "imageUrl" to post.imageUrl,
 
-            "primaryCategory" to recipe.primaryCategory,
-            "categories" to recipe.categories,
-            "prepTimeMin" to recipe.prepTimeMin,
-            "cookTimeMin" to recipe.cookTimeMin,
+            "authorId" to uid,
+            "authorName" to post.authorName, // אם אין לך שם עדיין – נשים "Anonymous" מה-VM
+            "createdAtMillis" to System.currentTimeMillis(),
 
-            "imageUrl" to recipe.imageUrl,
+            "likes" to 0L,
+            "commentsCount" to 0L,
 
-            "createdAtMillis" to recipe.createdAtMillis,
-            "authorId" to recipe.authorId,
-            "authorName" to recipe.authorName,
+            "ingredientsSummary" to post.ingredientsSummary,
+            "stepsSummary" to post.stepsSummary,
 
-            "likes" to recipe.likes,
-            "commentsCount" to recipe.commentsCount
+            "primaryCategory" to post.primaryCategory,
+            "categories" to post.categories,
+            "prepTimeMin" to post.prepTimeMin,
+            "cookTimeMin" to post.cookTimeMin
         )
 
-        recipesCollection
-            .add(data)
-            .addOnSuccessListener { onResult(true, null) }
-            .addOnFailureListener { e -> onResult(false, e.message) }
+        val ref = recipesCol.add(data).await()
+        return ref.id
     }
-
-
-    override fun getRecipe(id: String): Recipe? =
-        _recipes.value.orEmpty().firstOrNull { it.id == id }
 }

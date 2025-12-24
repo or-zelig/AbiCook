@@ -50,10 +50,12 @@ class HomeFeedFragment : Fragment() {
             if (state.error != null) {
                 Toast.makeText(requireContext(), state.error, Toast.LENGTH_SHORT).show()
             }
+
+            android.util.Log.d("FEED_UI", "render size=${state.posts.size}")
             adapter.submitList(state.posts)
         }
 
-        viewModel.loadFeed()
+        viewModel.startObservingFeed()
 
         fabCreate.setOnClickListener {
             findNavController().navigate(R.id.action_homeFeedFragment_to_createRecipeFragment)

@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import il.co.or.abicook.domain.model.RecipePost
 import il.co.or.abicook.domain.repository.FeedRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 data class HomeFeedUiState(
@@ -18,22 +20,37 @@ class HomeFeedViewModel(
     private val feedRepository: FeedRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableLiveData(HomeFeedUiState())
+    private val _uiState = MutableLiveData(HomeFeedUiState(isLoading = true))
     val uiState: LiveData<HomeFeedUiState> = _uiState
 
-    fun loadFeed() {
-        viewModelScope.launch {
+    private var observeJob: Job? = null
+
+    fun startObservingFeed() {
+        if (observeJob != null) return // שלא נפתח מאזין כפול
+
+        observeJob = viewModelScope.launch {
             _uiState.value = HomeFeedUiState(isLoading = true)
 
-            try {
-                val posts = feedRepository.getHomeFeed()
-                _uiState.value = HomeFeedUiState(isLoading = false, posts = posts)
-            } catch (e: Exception) {
-                _uiState.value = HomeFeedUiState(
-                    isLoading = false,
-                    error = e.message ?: "Failed to load feed"
-                )
-            }
+            feedRepository.observeHomeFeed()
+                .catch { e ->
+                    _uiState.value = HomeFeedUiState(
+                        isLoading = false,
+                        error = e.message ?: "Failed to load feed"
+                    )
+                }
+                .collect { posts ->
+                    _uiState.value = HomeFeedUiState(
+                        isLoading = false,
+                        posts = posts
+                    )
+
+                    android.util.Log.d("FEED_VM", "posts size=${posts.size}")
+                }
         }
+    }
+
+    override fun onCleared() {
+        observeJob?.cancel()
+        super.onCleared()
     }
 }
