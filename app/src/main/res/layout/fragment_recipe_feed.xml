@@ -40,8 +40,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:singleSelection="false"
+                app:selectionRequired="false"
                 app:chipSpacingHorizontal="8dp"
-                app:chipSpacingVertical="8dp" />
+                app:chipSpacingVertical="8dp"/>
 
             <TextView
                 android:layout_width="match_parent"
@@ -134,21 +135,30 @@
             </LinearLayout>
 
             <ProgressBar
-                android:id="@+id/progress"
+                android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="12dp"
-                android:visibility="gone" />
+                android:visibility="visible" />
 
             <TextView
-                android:id="@+id/tvEmpty"
+                android:id="@+id/tvError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:textColor="@android:color/holo_red_dark"
+                android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tvEmptyState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
                 android:text="לא נמצאו מתכונים לפי הסינון הזה 😅"
-                android:visibility="gone" />
+                android:visibility="visible" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvRecipes"

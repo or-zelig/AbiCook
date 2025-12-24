@@ -46,7 +46,7 @@ class LoginFragment : Fragment() {
         // אם כבר מחובר – דלג ישר ל-Home
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser != null) {
-            findNavController().navigate(R.id.action_loginFragment_to_recipeFeedFragment)
+            findNavController().navigate(R.id.action_loginFragment_to_homeFeedFragment)
             return
         }
 
@@ -67,7 +67,7 @@ class LoginFragment : Fragment() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                findNavController().navigate(R.id.action_loginFragment_to_recipeFeedFragment)
+                findNavController().navigate(R.id.action_loginFragment_to_homeFeedFragment)
             }
         }
 

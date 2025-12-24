@@ -54,29 +54,58 @@ class CreateRecipeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // 1) ViewModel
+        viewModel = androidx.lifecycle.ViewModelProvider(this)[CreateRecipeViewModel::class.java]
+
+        // 2) Views
+        etTitle = view.findViewById(R.id.etTitle)
+        etDescription = view.findViewById(R.id.etDescription)
+        etPrepTime = view.findViewById(R.id.etPrepTime)
+        etCookTime = view.findViewById(R.id.etCookTime)
+        chipGroupCategories = view.findViewById(R.id.chipGroupCategories)
+
+        containerIngredients = view.findViewById(R.id.containerIngredients)
+        btnAddIngredient = view.findViewById(R.id.btnAddIngredient)
+
+        containerSteps = view.findViewById(R.id.containerSteps)
+        btnAddStep = view.findViewById(R.id.btnAddStep)
+
+        tvError = view.findViewById(R.id.tvError)
+        progressBar = view.findViewById(R.id.progressBar)
+        btnPublish = view.findViewById(R.id.btnPublishRecipe)
+
+        // 3) Setup UI
+        setupCategoriesChips()
+        addIngredientView()
+        addStepView()
+        refreshStepIngredientChips()
+
+        btnAddIngredient.setOnClickListener { addIngredientView() }
+        btnAddStep.setOnClickListener { addStepView() }
+        btnPublish.setOnClickListener { publishRecipe() }
+
+        // 4) Observe state (רק אחרי שכל מה למעלה מוכן)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    // loading
                     progressBar.isVisible = state.isLoading
                     btnPublish.isEnabled = !state.isLoading
 
-                    // error
                     state.error?.let {
                         Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
                         viewModel.onHandledError()
                     }
 
-                    // success
                     if (state.publishSuccess) {
                         Toast.makeText(requireContext(), "Recipe published!", Toast.LENGTH_SHORT).show()
                         viewModel.onHandledSuccess()
-                        findNavController().popBackStack() // או ניווט למסך הקודם
+                        findNavController().popBackStack()
                     }
                 }
             }
         }
     }
+
 
     // region UI helpers
 
