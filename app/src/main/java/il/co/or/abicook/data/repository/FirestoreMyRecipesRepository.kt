@@ -1,16 +1,13 @@
 package il.co.or.abicook.data.repository
 
-import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import il.co.or.abicook.data.mapper.RecipeMapper.toPost
-import il.co.or.abicook.data.model.Recipe
 import il.co.or.abicook.domain.model.RecipePost
 import il.co.or.abicook.domain.repository.FeedSort
 import kotlinx.coroutines.tasks.await
 
 class FirestoreMyRecipesRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     suspend fun getMyRecipes(
         userId: String,
@@ -18,29 +15,49 @@ class FirestoreMyRecipesRepository(
         sort: FeedSort
     ): List<RecipePost> {
 
-        // IMPORTANT: אצלך זה authorId (לא userId)
-        var q: Query = firestore.collection("recipes")
+        // ✅ אצלך זה authorId (לא userId)
+        var q: Query = db.collection("recipes")
             .whereEqualTo("authorId", userId)
 
-        // Filter by categories (optional)
         if (categories.isNotEmpty()) {
             q = q.whereArrayContainsAny("categories", categories)
         }
 
         q = when (sort) {
-            FeedSort.NEWEST -> q.orderBy("createdAtMillis", Query.Direction.DESCENDING)
             FeedSort.MOST_LIKED -> q.orderBy("likes", Query.Direction.DESCENDING)
+            FeedSort.NEWEST -> q.orderBy("createdAtMillis", Query.Direction.DESCENDING)
         }
 
-        // stable tie-breaker (חובה import ל-FieldPath)
-        q = q.orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
+        // ✅ במקום FieldPath: משתמשים בשדה המערכת "__name__"
+        q = q.orderBy("__name__", Query.Direction.DESCENDING)
 
-        val snap = q.limit(50).get().await()
+        val snap = q.get().await()
 
-        val recipes = snap.documents.mapNotNull { doc ->
-            doc.toObject(Recipe::class.java)?.copy(id = doc.id)
+        // אל תשתמש ב-toObject על Kotlin data class אם אין no-arg ctor → מפה ידנית
+        return snap.documents.map { doc ->
+            RecipePost(
+                id = doc.id,
+                title = doc.getString("title").orEmpty(),
+                description = doc.getString("description").orEmpty(),
+                imageUrl = doc.getString("imageUrl"),
+
+                authorId = doc.getString("authorId").orEmpty(),
+                authorName = doc.getString("authorName") ?: "Unknown",
+
+                createdAtMillis = doc.getLong("createdAtMillis") ?: 0L,
+
+                likes = doc.getLong("likes") ?: 0L,
+                commentsCount = doc.getLong("commentsCount") ?: 0L,
+                isLikedByMe = false,
+
+                ingredientsSummary = doc.getString("ingredientsSummary").orEmpty(),
+                stepsSummary = doc.getString("stepsSummary").orEmpty(),
+
+                primaryCategory = doc.getString("primaryCategory").orEmpty(),
+                categories = (doc.get("categories") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                prepTimeMin = (doc.getLong("prepTimeMin") ?: 0L).toInt(),
+                cookTimeMin = (doc.getLong("cookTimeMin") ?: 0L).toInt()
+            )
         }
-
-        return recipes.map { it.toPost() }
     }
 }
