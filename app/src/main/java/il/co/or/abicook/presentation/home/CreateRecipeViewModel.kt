@@ -1,120 +1,78 @@
 package il.co.or.abicook.presentation.home
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import il.co.or.abicook.data.model.Recipe
-import il.co.or.abicook.data.repository.RecipeRepositoryProvider
-import java.util.UUID
-
-
-enum class CreateRecipeStep {
-    BASIC,
-    INGREDIENTS,
-    STEPS,
-    SUMMARY
-}
-
-data class CreateRecipeUiState(
-    val step: CreateRecipeStep = CreateRecipeStep.BASIC,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val success: Boolean = false
-)
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class CreateRecipeViewModel : ViewModel() {
 
-    private val _uiState = MutableLiveData(CreateRecipeUiState())
-    val uiState: LiveData<CreateRecipeUiState> = _uiState
-    private val repository = RecipeRepositoryProvider.recipeRepository
+    private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
+    data class UiState(
+        val isLoading: Boolean = false,
+        val error: String? = null,
+        val publishSuccess: Boolean = false
+    )
 
-    fun onHandledSuccess() {
-        _uiState.value = _uiState.value?.copy(success = false)
-    }
-
-    fun goToIngredients() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.INGREDIENTS)
-    }
-
-    fun goToSteps() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.STEPS)
-    }
-
-    fun goToSummary() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.SUMMARY)
-    }
-
-    fun previous() {
-        val current = _uiState.value?.step ?: CreateRecipeStep.BASIC
-        val prev = when (current) {
-            CreateRecipeStep.BASIC -> CreateRecipeStep.BASIC
-            CreateRecipeStep.INGREDIENTS -> CreateRecipeStep.BASIC
-            CreateRecipeStep.STEPS -> CreateRecipeStep.INGREDIENTS
-            CreateRecipeStep.SUMMARY -> CreateRecipeStep.STEPS
-        }
-        _uiState.value = CreateRecipeUiState(step = prev)
-    }
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState: StateFlow<UiState> = _uiState
 
     fun publishRecipe(
         title: String,
         description: String,
         ingredientsSummary: String,
-        stepsSummary: String
+        stepsSummary: String,
+        primaryCategory: String,
+        categories: List<String>,
+        prepTimeMin: Int,
+        cookTimeMin: Int
     ) {
-        val currentUser = auth.currentUser
-        if (currentUser == null) {
-            _uiState.value = _uiState.value?.copy(
-                error = "You must be logged in to publish a recipe",
-                isLoading = false,
-                success = false
-            )
-            return
-        }
+        viewModelScope.launch {
+            _uiState.value = UiState(isLoading = true)
 
-        _uiState.value = _uiState.value?.copy(
-            isLoading = true,
-            error = null,
-            success = false
-        )
+            try {
+                val userId = auth.currentUser?.uid.orEmpty()
 
-        val recipe = Recipe(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            description = description,
-            ingredientsSummary = ingredientsSummary,
-            stepsSummary = stepsSummary,
-            createdAtMillis = System.currentTimeMillis(),
-            authorId = currentUser.uid
-        )
+                val doc = mapOf(
+                    "title" to title.trim(),
+                    "description" to description.trim(),
+                    "ingredientsSummary" to ingredientsSummary.trim(),
+                    "stepsSummary" to stepsSummary.trim(),
 
-        repository.addRecipe(recipe) { success, errorMessage ->
-            if (success) {
-                _uiState.postValue(
-                    _uiState.value?.copy(
-                        isLoading = false,
-                        success = true,
-                        error = null
-                    )
+                    "primaryCategory" to primaryCategory.trim(),
+                    "categories" to categories,
+                    "prepTimeMin" to prepTimeMin,
+                    "cookTimeMin" to cookTimeMin,
+
+                    "imageUrl" to null,
+                    "createdAtMillis" to System.currentTimeMillis(),
+                    "authorId" to userId,
+                    "authorName" to if (userId.isBlank()) "Anonymous" else "User",
+
+                    "likes" to 0,
+                    "commentsCount" to 0
                 )
-            } else {
-                _uiState.postValue(
-                    _uiState.value?.copy(
-                        isLoading = false,
-                        success = false,
-                        error = errorMessage ?: "Failed to publish recipe"
-                    )
-                )
+
+                firestore.collection("recipes").add(doc).await()
+
+                _uiState.value = UiState(publishSuccess = true)
+            } catch (e: Exception) {
+                _uiState.value = UiState(error = e.message ?: "Unknown error")
             }
         }
     }
 
+    fun onHandledSuccess() {
+        _uiState.value = _uiState.value.copy(publishSuccess = false)
+    }
 
-
-
-    fun resetSuccess() {
-        _uiState.value = CreateRecipeUiState(step = CreateRecipeStep.BASIC)
+    fun onHandledError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 }

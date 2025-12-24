@@ -33,6 +33,7 @@ class RecipePostAdapter :
             tvAuthor.text = "by ${item.authorName}"
             tvMeta.text = "${item.likes} likes • ${item.commentsCount} comments"
 
+            // בינתיים default. כשנעבור לתמונות אמיתיות נטען מ-URL.
             ivImage.setImageResource(R.drawable.ic_launcher_background)
         }
     }

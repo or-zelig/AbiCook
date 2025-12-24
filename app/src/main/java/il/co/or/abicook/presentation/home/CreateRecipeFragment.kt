@@ -11,9 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.children
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -21,6 +19,12 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import il.co.or.abicook.R
 import android.widget.ArrayAdapter
+import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.appbar.MaterialToolbar
+import kotlinx.coroutines.launch
+
 
 class CreateRecipeFragment : Fragment() {
 
@@ -42,6 +46,8 @@ class CreateRecipeFragment : Fragment() {
     private lateinit var progressBar: View
     private lateinit var btnPublish: MaterialButton
 
+    private lateinit var btnBack: MaterialToolbar
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -51,14 +57,10 @@ class CreateRecipeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Toolbar – חץ אחורה
-        val toolbar = view.findViewById<MaterialToolbar>(R.id.topAppBarCreateRecipe)
-        toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
+        // 1) ViewModel
+        viewModel = androidx.lifecycle.ViewModelProvider(this)[CreateRecipeViewModel::class.java]
 
-        viewModel = ViewModelProvider(this)[CreateRecipeViewModel::class.java]
-
+        // 2) Views
         etTitle = view.findViewById(R.id.etTitle)
         etDescription = view.findViewById(R.id.etDescription)
         etPrepTime = view.findViewById(R.id.etPrepTime)
@@ -74,38 +76,44 @@ class CreateRecipeFragment : Fragment() {
         tvError = view.findViewById(R.id.tvError)
         progressBar = view.findViewById(R.id.progressBar)
         btnPublish = view.findViewById(R.id.btnPublishRecipe)
+        btnBack = view.findViewById(R.id.topAppBarCreateRecipe)
 
+        // 3) Setup UI
         setupCategoriesChips()
-
-        // מתחילים עם מצרך ושלב אחד
         addIngredientView()
         addStepView()
         refreshStepIngredientChips()
 
-        btnAddIngredient.setOnClickListener {
-            if (validateLastIngredientFilled()) {
-                addIngredientView()
-                refreshStepIngredientChips()
-            } else {
-                showToast("Fill the current ingredient before adding a new one")
+        btnAddIngredient.setOnClickListener { addIngredientView() }
+        btnAddStep.setOnClickListener { addStepView() }
+        btnPublish.setOnClickListener { publishRecipe() }
+
+        btnBack.setOnClickListener{
+            findNavController().popBackStack()
+        }
+
+        // 4) Observe state (רק אחרי שכל מה למעלה מוכן)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    progressBar.isVisible = state.isLoading
+                    btnPublish.isEnabled = !state.isLoading
+
+                    state.error?.let {
+                        Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                        viewModel.onHandledError()
+                    }
+
+                    if (state.publishSuccess) {
+                        Toast.makeText(requireContext(), "Recipe published!", Toast.LENGTH_SHORT).show()
+                        viewModel.onHandledSuccess()
+                        findNavController().popBackStack()
+                    }
+                }
             }
         }
-
-        btnAddStep.setOnClickListener {
-            if (validateLastStepFilled()) {
-                addStepView()
-                refreshStepIngredientChips()
-            } else {
-                showToast("Fill the current step before adding a new one")
-            }
-        }
-
-        btnPublish.setOnClickListener {
-            publishRecipe()
-        }
-
-        observeViewModel()
     }
+
 
     // region UI helpers
 
@@ -192,11 +200,6 @@ class CreateRecipeFragment : Fragment() {
                 .text?.toString()?.trim()?.takeIf { it.isNotEmpty() }
         }.toList()
 
-    /**
-     * בונה את הצ'יפים של המצרכים לכל שלב:
-     * – כל צ'יפ מייצג מצרך
-     * – לחיצה על צ'יפ מוסיפה את השם לתיאור השלב (כדי שלא תצטרך לכתוב שוב)
-     */
     private fun refreshStepIngredientChips() {
         val ingredientNames = getIngredientNames()
 
@@ -403,34 +406,30 @@ class CreateRecipeFragment : Fragment() {
             return
         }
 
-        // אפשר גם לחשב זמן כולל / קטגוריות אם תרצה לשמור אחר כך
+        val prep = etPrepTime.text?.toString()?.trim()?.toIntOrNull() ?: 0
+        val cook = etCookTime.text?.toString()?.trim()?.toIntOrNull() ?: 0
+
+        val selected = chipGroupCategories.children
+            .mapNotNull { it as? Chip }
+            .filter { it.isChecked }
+            .map { it.text.toString() }
+            .toList()
+
+        val primaryCategory = selected.firstOrNull().orEmpty()
+
         viewModel.publishRecipe(
             title = title,
             description = description,
             ingredientsSummary = ingredientsSummary,
-            stepsSummary = stepsSummary
+            stepsSummary = stepsSummary,
+            primaryCategory = primaryCategory,
+            categories = selected,
+            prepTimeMin = prep,
+            cookTimeMin = cook
         )
-    }
 
-    private fun observeViewModel() {
-        viewModel.uiState.observe(viewLifecycleOwner) { state ->
-            progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-            btnPublish.isEnabled = !state.isLoading
+        findNavController().popBackStack()
 
-            if (state.error != null) {
-                tvError.text = state.error
-                tvError.visibility = View.VISIBLE
-            } else {
-                tvError.visibility = View.GONE
-            }
-
-            if (state.success) {
-                showToast("Recipe published!")
-                clearForm()
-                findNavController().navigateUp()
-                viewModel.onHandledSuccess()
-            }
-        }
     }
 
     private fun clearForm() {

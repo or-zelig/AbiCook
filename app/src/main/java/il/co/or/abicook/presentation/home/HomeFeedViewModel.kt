@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import il.co.or.abicook.domain.model.RecipePost
 import il.co.or.abicook.domain.repository.FeedRepository
+import il.co.or.abicook.domain.repository.FeedSort
 import kotlinx.coroutines.launch
 
 data class HomeFeedUiState(
@@ -18,24 +19,17 @@ class HomeFeedViewModel(
     private val feedRepository: FeedRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableLiveData(HomeFeedUiState())
+    private val _uiState = MutableLiveData(HomeFeedUiState(isLoading = true))
     val uiState: LiveData<HomeFeedUiState> = _uiState
 
-    fun loadFeed() {
+    fun loadFeed(categories: List<String> = emptyList(), sort: FeedSort = FeedSort.NEWEST) {
         viewModelScope.launch {
             _uiState.value = HomeFeedUiState(isLoading = true)
-
             try {
-                val posts = feedRepository.getHomeFeed()
-                _uiState.value = HomeFeedUiState(
-                    isLoading = false,
-                    posts = posts
-                )
+                val posts = feedRepository.getFeed(categories, sort)
+                _uiState.value = HomeFeedUiState(isLoading = false, posts = posts)
             } catch (e: Exception) {
-                _uiState.value = HomeFeedUiState(
-                    isLoading = false,
-                    error = e.message ?: "Failed to load feed"
-                )
+                _uiState.value = HomeFeedUiState(isLoading = false, error = e.message ?: "Failed to load feed")
             }
         }
     }
