@@ -1,7 +1,7 @@
 package il.co.or.abicook.data.repository
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import il.co.or.abicook.domain.model.RecipePost
 import il.co.or.abicook.domain.repository.FeedSort
 import kotlinx.coroutines.tasks.await
@@ -9,32 +9,23 @@ import kotlinx.coroutines.tasks.await
 class FirestoreMyRecipesRepository(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
+
     suspend fun getMyRecipes(
         userId: String,
         categories: List<String>,
-        sort: FeedSort
+        sort: FeedSort,
     ): List<RecipePost> {
 
-        // ✅ אצלך זה authorId (לא userId)
-        var q: Query = db.collection("recipes")
+        // 1) רק לפי authorId => לא דורש קומפוזיט אינדקס
+        val snap = db.collection("recipes")
             .whereEqualTo("authorId", userId)
+            .get()
+            .await()
 
-        if (categories.isNotEmpty()) {
-            q = q.whereArrayContainsAny("categories", categories)
-        }
+        Log.d("MY_RECIPES", "uid=$userId docs=${snap.size()}")
 
-        q = when (sort) {
-            FeedSort.MOST_LIKED -> q.orderBy("likes", Query.Direction.DESCENDING)
-            FeedSort.NEWEST -> q.orderBy("createdAtMillis", Query.Direction.DESCENDING)
-        }
-
-        // ✅ במקום FieldPath: משתמשים בשדה המערכת "__name__"
-        q = q.orderBy("__name__", Query.Direction.DESCENDING)
-
-        val snap = q.get().await()
-
-        // אל תשתמש ב-toObject על Kotlin data class אם אין no-arg ctor → מפה ידנית
-        return snap.documents.map { doc ->
+        // 2) מיפוי למסך
+        val posts = snap.documents.map { doc ->
             RecipePost(
                 id = doc.id,
                 title = doc.getString("title").orEmpty(),
@@ -58,6 +49,28 @@ class FirestoreMyRecipesRepository(
                 prepTimeMin = (doc.getLong("prepTimeMin") ?: 0L).toInt(),
                 cookTimeMin = (doc.getLong("cookTimeMin") ?: 0L).toInt()
             )
+        }
+
+        // 3) פילטור קטגוריות בצד לקוח (כדי לא לדרוש אינדקסים)
+        val filtered = if (categories.isEmpty()) {
+            posts
+        } else {
+            val wanted = categories.toSet()
+            posts.filter { p ->
+                p.primaryCategory in wanted || p.categories.any { it in wanted }
+            }
+        }
+
+        // 4) מיון בצד לקוח
+        return when (sort) {
+            FeedSort.NEWEST ->
+                filtered.sortedWith(compareByDescending<RecipePost> { it.createdAtMillis }
+                    .thenByDescending { it.id })
+
+            FeedSort.MOST_LIKED ->
+                filtered.sortedWith(compareByDescending<RecipePost> { it.likes }
+                    .thenByDescending { it.createdAtMillis }
+                    .thenByDescending { it.id })
         }
     }
 }

@@ -15,9 +15,11 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import il.co.or.abicook.R
 import il.co.or.abicook.domain.repository.FeedSort
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
 
@@ -40,8 +42,7 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmpty)
 
         // Header username
-        val user = FirebaseAuth.getInstance().currentUser
-        tvUser.text = "My recipes: ${user?.email ?: "Unknown"}"
+        bindUsername(tvUser)
 
         // Build category chips
         val categories = resources.getStringArray(R.array.recipe_categories)
@@ -60,14 +61,22 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
         rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
 
-        // Observe state
         viewLifecycleOwner.lifecycleScope.launch {
             vm.uiState.collect { s ->
                 progress.isVisible = s.isLoading
-                tvEmpty.isVisible = !s.isLoading && s.error == null && s.recipes.isEmpty()
+
+                if (s.error != null) {
+                    tvEmpty.isVisible = true
+                    tvEmpty.text = s.error
+                } else {
+                    tvEmpty.text = "No recipes yet"
+                    tvEmpty.isVisible = !s.isLoading && s.recipes.isEmpty()
+                }
+
                 adapter.submitList(s.recipes)
             }
         }
+
 
         btnEditFilters.setOnClickListener {
             panelResults.isVisible = false
@@ -90,6 +99,24 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
 
             panelFilters.isVisible = false
             panelResults.isVisible = true
+        }
+
+        vm.loadMyRecipes(categories = emptyList(), sort = FeedSort.NEWEST)
+    }
+
+    private fun bindUsername(tv: TextView) {
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val uid = user.uid
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val snap = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .get()
+                .await()
+
+            val username = snap.getString("username")?.trim().takeIf { !it.isNullOrBlank() }
+            tv.text = "Welcome, ${username ?: (user.displayName ?: user.email ?: "User")}"
         }
     }
 }

@@ -18,7 +18,7 @@ class FirestoreFeedRepository(
         sort: FeedSort
     ): List<RecipePost> {
 
-        var q: com.google.firebase.firestore.Query = firestore.collection("recipes")
+        var q: Query = firestore.collection("recipes")
 
         if (categories.isNotEmpty()) {
             q = q.whereArrayContainsAny("categories", categories)

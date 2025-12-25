@@ -8,7 +8,6 @@ import il.co.or.abicook.domain.model.RecipePost
 import il.co.or.abicook.domain.repository.FeedSort
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class MyRecipesUiState(
@@ -25,19 +24,19 @@ class MyRecipesViewModel(
     val uiState: StateFlow<MyRecipesUiState> = _uiState
 
     fun loadMyRecipes(categories: List<String>, sort: FeedSort) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid.isNullOrBlank()) {
-            _uiState.update { it.copy(error = "Not logged in") }
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+            _uiState.value = MyRecipesUiState(error = "Not logged in")
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.value = MyRecipesUiState(isLoading = true)
             try {
+
                 val data = repo.getMyRecipes(uid, categories, sort)
-                _uiState.update { it.copy(isLoading = false, recipes = data) }
+                _uiState.value = MyRecipesUiState(recipes = data)
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.value = MyRecipesUiState(error = e.message ?: "Unknown error")
             }
         }
     }

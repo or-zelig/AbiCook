@@ -66,11 +66,12 @@ class CreateRecipeViewModel : ViewModel() {
 
                     "prepTimeMin" to prepTimeMin,
                     "cookTimeMin" to cookTimeMin,
+                    "totalTimeMin" to (prepTimeMin + cookTimeMin),
 
                     "createdAtMillis" to System.currentTimeMillis(),
 
-                    // ✅ זה הפתרון לבעיה שלך:
                     "authorId" to uid,
+                    "userId" to uid,
                     "authorName" to authorName,
 
                     "likes" to 0L,

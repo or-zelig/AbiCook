@@ -1,6 +1,7 @@
 package il.co.or.abicook.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import il.co.or.abicook.domain.repository.AuthRepository
 import kotlinx.coroutines.tasks.await
@@ -21,26 +22,30 @@ class FirebaseAuthRepository(
 
     override suspend fun signUp(email: String, password: String, username: String): Result<Unit> {
         return try {
-            // 1. יצירת המשתמש ב-Auth
+            // 1) Create user in Firebase Auth
             auth.createUserWithEmailAndPassword(email, password).await()
-            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("No user ID"))
+            val user = auth.currentUser ?: return Result.failure(Exception("No user after signUp"))
+            val uid = user.uid
 
-            // 2. שמירת username ב-Firestore - לא חוסמים את הזרימה
-            val userData = mapOf("username" to username)
+            // 2) Set displayName in Auth (so later we can read user.displayName)
+            val profile = UserProfileChangeRequest.Builder()
+                .setDisplayName(username.trim())
+                .build()
+            user.updateProfile(profile).await()
 
-            // שומרים ברקע, בלי await - גם אם זה ייכשל, זה לא יתקע את ההרשמה
-            firestore.collection("users").document(userId).set(userData)
-                .addOnFailureListener {
-                    // אפשר לתת לוג בעתיד אם תרצה, אבל לא נוגעים ב-UI פה
-                }
+            // 3) Save profile in Firestore (users/{uid})
+            val userData = mapOf(
+                "username" to username.trim(),
+                "email" to email.trim(),
+                "createdAtMillis" to System.currentTimeMillis()
+            )
+            firestore.collection("users").document(uid).set(userData).await()
 
-            // 3. מבחינת ה-ViewModel - הכול הצליח
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-
 
     override fun getCurrentUserId(): String? = auth.currentUser?.uid
 

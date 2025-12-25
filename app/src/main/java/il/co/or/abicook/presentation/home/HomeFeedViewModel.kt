@@ -22,15 +22,21 @@ class HomeFeedViewModel(
     private val _uiState = MutableLiveData(HomeFeedUiState(isLoading = true))
     val uiState: LiveData<HomeFeedUiState> = _uiState
 
-    fun loadFeed(categories: List<String> = emptyList(), sort: FeedSort = FeedSort.NEWEST) {
+    fun loadFeed(categories: List<String> = emptyList(), sort: FeedSort = FeedSort.NEWEST, maxTotalTimeMin: Int?) {
         viewModelScope.launch {
             _uiState.value = HomeFeedUiState(isLoading = true)
             try {
                 val posts = feedRepository.getFeed(categories, sort)
-                _uiState.value = HomeFeedUiState(isLoading = false, posts = posts)
+
+                val filtered = if (maxTotalTimeMin != null) {
+                    posts.filter { (it.prepTimeMin + it.cookTimeMin) <= maxTotalTimeMin }
+                } else posts
+
+                _uiState.value = HomeFeedUiState(isLoading = false, posts = filtered)
             } catch (e: Exception) {
                 _uiState.value = HomeFeedUiState(isLoading = false, error = e.message ?: "Failed to load feed")
             }
         }
     }
+
 }
