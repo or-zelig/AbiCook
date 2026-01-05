@@ -41,13 +41,13 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
         val progress = view.findViewById<ProgressBar>(R.id.progress)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmpty)
 
-        // Header username
+        // ✅ Header: show username (Firestore users/{uid}.username)
         bindUsername(tvUser)
 
         // Build category chips
-        val categories = resources.getStringArray(R.array.recipe_categories)
+        val categoriesArr = resources.getStringArray(R.array.recipe_categories)
         chipGroup.removeAllViews()
-        categories.forEach { c ->
+        categoriesArr.forEach { c ->
             chipGroup.addView(
                 Chip(requireContext()).apply {
                     text = c
@@ -61,22 +61,38 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
         rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
 
+        // Observe state
         viewLifecycleOwner.lifecycleScope.launch {
             vm.uiState.collect { s ->
-                progress.isVisible = s.isLoading
+                progress.isVisible = s.isLoading || s.isRefreshing
 
-                if (s.error != null) {
-                    tvEmpty.isVisible = true
-                    tvEmpty.text = s.error
-                } else {
-                    tvEmpty.text = "No recipes yet"
-                    tvEmpty.isVisible = !s.isLoading && s.recipes.isEmpty()
+                when {
+                    s.notLoggedIn -> {
+                        tvEmpty.isVisible = true
+                        tvEmpty.text = "Please login"
+                    }
+                    s.error != null -> {
+                        tvEmpty.isVisible = true
+                        tvEmpty.text = s.error
+                    }
+                    s.recipes.isEmpty() && !(s.isLoading || s.isRefreshing) -> {
+                        tvEmpty.isVisible = true
+                        tvEmpty.text = "No recipes yet"
+                    }
+                    else -> {
+                        tvEmpty.isVisible = false
+                    }
+                }
+
+                // (optional) show a small hint if we had to fallback locally due to missing index
+                if (s.usedLocalFallback && s.error == null && s.recipes.isNotEmpty()) {
+                    // you can replace with Snackbar/Toast if you want
+                    // tvEmpty.text = "Showing results (filtered locally - server index missing)"
                 }
 
                 adapter.submitList(s.recipes)
             }
         }
-
 
         btnEditFilters.setOnClickListener {
             panelResults.isVisible = false
@@ -101,22 +117,32 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
             panelResults.isVisible = true
         }
 
+        // ✅ Auto load on open (real server data)
         vm.loadMyRecipes(categories = emptyList(), sort = FeedSort.NEWEST)
     }
 
     private fun bindUsername(tv: TextView) {
-        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            tv.text = "My recipes"
+            return
+        }
+
         val uid = user.uid
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val snap = FirebaseFirestore.getInstance()
-                .collection("users")
-                .document(uid)
-                .get()
-                .await()
+            val snap = try {
+                FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(uid)
+                    .get()
+                    .await()
+            } catch (_: Exception) {
+                null
+            }
 
-            val username = snap.getString("username")?.trim().takeIf { !it.isNullOrBlank() }
-            tv.text = "Welcome, ${username ?: (user.displayName ?: user.email ?: "User")}"
+            val username = snap?.getString("username")?.trim()?.takeIf { it.isNotBlank() }
+            tv.text = "My recipes: ${username ?: (user.displayName ?: user.email ?: "User")}"
         }
     }
 }

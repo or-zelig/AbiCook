@@ -11,9 +11,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 data class MyRecipesUiState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = false,        // first load (no cache)
+    val isRefreshing: Boolean = false,     // refresh while showing cached list
     val recipes: List<RecipePost> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val notLoggedIn: Boolean = false,
+    val usedLocalFallback: Boolean = false,
+    val lastUpdatedMillis: Long? = null
 )
 
 class MyRecipesViewModel(
@@ -23,21 +27,49 @@ class MyRecipesViewModel(
     private val _uiState = MutableStateFlow(MyRecipesUiState())
     val uiState: StateFlow<MyRecipesUiState> = _uiState
 
-    fun loadMyRecipes(categories: List<String>, sort: FeedSort) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
-            _uiState.value = MyRecipesUiState(error = "Not logged in")
+    private var lastCategories: List<String> = emptyList()
+    private var lastSort: FeedSort = FeedSort.NEWEST
+
+    fun loadMyRecipes(categories: List<String>, sort: FeedSort, force: Boolean = false) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid.isNullOrBlank()) {
+            _uiState.value = MyRecipesUiState(notLoggedIn = true, error = null, recipes = emptyList())
             return
         }
 
-        viewModelScope.launch {
-            _uiState.value = MyRecipesUiState(isLoading = true)
-            try {
+        lastCategories = categories
+        lastSort = sort
 
-                val data = repo.getMyRecipes(uid, categories, sort)
-                _uiState.value = MyRecipesUiState(recipes = data)
+        val hasCache = _uiState.value.recipes.isNotEmpty()
+
+        // SWR: אם יש Cache, מציגים אותו ומרעננים מהשרת
+        _uiState.value = _uiState.value.copy(
+            isLoading = !hasCache || force,
+            isRefreshing = hasCache && !force,
+            error = null,
+            notLoggedIn = false
+        )
+
+        viewModelScope.launch {
+            try {
+                val result = repo.getMyRecipes(uid, categories, sort, limit = 50L)
+                _uiState.value = MyRecipesUiState(
+                    recipes = result.recipes,
+                    usedLocalFallback = result.usedLocalFallback,
+                    lastUpdatedMillis = System.currentTimeMillis()
+                )
             } catch (e: Exception) {
-                _uiState.value = MyRecipesUiState(error = e.message ?: "Unknown error")
+                // אם יש cache—נשאיר אותו ונציג שגיאה
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    error = e.message ?: "Unknown error"
+                )
             }
         }
+    }
+
+    fun refresh() {
+        loadMyRecipes(lastCategories, lastSort, force = true)
     }
 }

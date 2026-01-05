@@ -141,6 +141,7 @@
     </androidx.core.widget.NestedScrollView>
 
     <!-- ===================== RESULTS PANEL ===================== -->
+    <!-- ===================== RESULTS PANEL ===================== -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panelResults"
         android:layout_width="match_parent"
@@ -151,7 +152,7 @@
             android:id="@+id/tvGreetingResults"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Feed"
+            android:text="WELCOME"
             android:textSize="18sp"
             android:textStyle="bold"
             android:padding="16dp"
@@ -164,16 +165,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="FILTER"
-            android:layout_marginEnd="8dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnLogout"
-            app:layout_constraintBottom_toBottomOf="@+id/tvGreetingResults" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLogout"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="LOGOUT"
             android:layout_marginEnd="12dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -190,5 +181,6 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
 
 </FrameLayout>

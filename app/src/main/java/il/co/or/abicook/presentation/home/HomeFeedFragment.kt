@@ -179,22 +179,33 @@ class HomeFeedFragment : Fragment() {
     }
 
     private fun bindUsername(tv: TextView) {
-        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            tv.text = "WELCOME"
+            return
+        }
+
         val uid = user.uid
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val snap = FirebaseFirestore.getInstance()
-                .collection("users")
-                .document(uid)
-                .get()
-                .await()
+            val username = try {
+                val snap = FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(uid)
+                    .get()
+                    .await()
 
-            val username = snap.getString("username")
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
+                snap.getString("username")
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+            } catch (_: Exception) {
+                null
+            }
 
-            tv.text = "Welcome, ${username ?: (user.displayName ?: user.email ?: "User")}"
+            val nameToShow = username ?: user.displayName ?: "User"
+            tv.text = "WELCOME, $nameToShow"
         }
     }
+
 
 }

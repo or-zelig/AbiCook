@@ -6,52 +6,54 @@ import il.co.or.abicook.domain.model.RecipePost
 import il.co.or.abicook.domain.repository.FeedSort
 import kotlinx.coroutines.tasks.await
 
+data class MyRecipesResult(
+    val recipes: List<RecipePost>,
+    val usedLocalFallback: Boolean
+)
+
 class FirestoreMyRecipesRepository(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
+    /**
+     * IMPORTANT:
+     * We avoid any orderBy / whereArrayContainsAny in MyRecipes queries to prevent composite-index errors.
+     * We still fetch REAL data from Firestore (server), then filter/sort locally.
+     */
     suspend fun getMyRecipes(
         userId: String,
         categories: List<String>,
         sort: FeedSort,
-    ): List<RecipePost> {
+        limit: Long = 50L
+    ): MyRecipesResult {
 
-        // 1) רק לפי authorId => לא דורש קומפוזיט אינדקס
+        // 1) Fetch from server using only equality (no composite index required)
         val snap = db.collection("recipes")
             .whereEqualTo("authorId", userId)
             .get()
             .await()
 
-        Log.d("MY_RECIPES", "uid=$userId docs=${snap.size()}")
-
-        // 2) מיפוי למסך
-        val posts = snap.documents.map { doc ->
-            RecipePost(
-                id = doc.id,
-                title = doc.getString("title").orEmpty(),
-                description = doc.getString("description").orEmpty(),
-                imageUrl = doc.getString("imageUrl"),
-
-                authorId = doc.getString("authorId").orEmpty(),
-                authorName = doc.getString("authorName") ?: "Unknown",
-
-                createdAtMillis = doc.getLong("createdAtMillis") ?: 0L,
-
-                likes = doc.getLong("likes") ?: 0L,
-                commentsCount = doc.getLong("commentsCount") ?: 0L,
-                isLikedByMe = false,
-
-                ingredientsSummary = doc.getString("ingredientsSummary").orEmpty(),
-                stepsSummary = doc.getString("stepsSummary").orEmpty(),
-
-                primaryCategory = doc.getString("primaryCategory").orEmpty(),
-                categories = (doc.get("categories") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                prepTimeMin = (doc.getLong("prepTimeMin") ?: 0L).toInt(),
-                cookTimeMin = (doc.getLong("cookTimeMin") ?: 0L).toInt()
-            )
+        var posts = snap.documents.mapNotNull { doc ->
+            doc.toObject(RecipePost::class.java)?.copy(id = doc.id)
         }
 
-        // 3) פילטור קטגוריות בצד לקוח (כדי לא לדרוש אינדקסים)
+        Log.d("MY_RECIPES", "server(authorId) uid=$userId docs=${posts.size}")
+
+        // 2) If your old data used "userId" instead of "authorId", fallback:
+        if (posts.isEmpty()) {
+            val snap2 = db.collection("recipes")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+
+            posts = snap2.documents.mapNotNull { doc ->
+                doc.toObject(RecipePost::class.java)?.copy(id = doc.id)
+            }
+
+            Log.d("MY_RECIPES", "server(userId) uid=$userId docs=${posts.size}")
+        }
+
+        // 3) Filter categories locally (no index)
         val filtered = if (categories.isEmpty()) {
             posts
         } else {
@@ -61,16 +63,18 @@ class FirestoreMyRecipesRepository(
             }
         }
 
-        // 4) מיון בצד לקוח
-        return when (sort) {
+        // 4) Sort locally (no index)
+        val sorted = when (sort) {
             FeedSort.NEWEST ->
-                filtered.sortedWith(compareByDescending<RecipePost> { it.createdAtMillis }
-                    .thenByDescending { it.id })
+                filtered.sortedByDescending { it.createdAtMillis }
 
             FeedSort.MOST_LIKED ->
-                filtered.sortedWith(compareByDescending<RecipePost> { it.likes }
-                    .thenByDescending { it.createdAtMillis }
-                    .thenByDescending { it.id })
+                filtered.sortedWith(
+                    compareByDescending<RecipePost> { it.likes }
+                        .thenByDescending { it.createdAtMillis }
+                )
         }
+
+        return MyRecipesResult(sorted.take(limit.toInt()), usedLocalFallback = true)
     }
 }
