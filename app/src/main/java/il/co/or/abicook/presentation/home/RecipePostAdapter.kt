@@ -11,8 +11,9 @@ import androidx.recyclerview.widget.RecyclerView
 import il.co.or.abicook.R
 import il.co.or.abicook.domain.model.RecipePost
 
-class RecipePostAdapter :
-    ListAdapter<RecipePost, RecipePostAdapter.PostViewHolder>(DiffCallback) {
+class RecipePostAdapter(
+    private val onItemClick: ((RecipePost) -> Unit)? = null
+) : ListAdapter<RecipePost, RecipePostAdapter.PostViewHolder>(DiffCallback) {
 
     object DiffCallback : DiffUtil.ItemCallback<RecipePost>() {
         override fun areItemsTheSame(oldItem: RecipePost, newItem: RecipePost): Boolean =
@@ -32,9 +33,9 @@ class RecipePostAdapter :
             tvTitle.text = item.title
             tvAuthor.text = "by ${item.authorName}"
             tvMeta.text = "${item.likes} likes • ${item.commentsCount} comments"
-
-            // בינתיים default. כשנעבור לתמונות אמיתיות נטען מ-URL.
             ivImage.setImageResource(R.drawable.ic_launcher_background)
+
+            itemView.setOnClickListener { onItemClick?.invoke(item) }
         }
     }
 

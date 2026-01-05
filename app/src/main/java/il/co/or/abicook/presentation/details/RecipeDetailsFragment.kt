@@ -1,0 +1,109 @@
+package il.co.or.abicook.presentation.details
+
+import android.os.Bundle
+import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import il.co.or.abicook.R
+import il.co.or.abicook.data.repository.FirestoreRecipeDetailsRepository
+import il.co.or.abicook.domain.model.RecipePost
+
+class RecipeDetailsFragment : Fragment(R.layout.fragment_recipe_details) {
+
+    private val vm: RecipeDetailsViewModel by viewModels {
+        RecipeDetailsViewModelFactory(FirestoreRecipeDetailsRepository())
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val recipeId = requireArguments().getString("recipeId")
+            ?: run {
+                Toast.makeText(requireContext(), "Missing recipeId", Toast.LENGTH_SHORT).show()
+                findNavController().popBackStack()
+                return
+            }
+
+        val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
+        toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
+
+        val ivRecipe = view.findViewById<ImageView>(R.id.ivRecipe)
+        val tvTitle = view.findViewById<TextView>(R.id.tvTitle)
+        val tvAuthor = view.findViewById<TextView>(R.id.tvAuthor)
+        val tvTimes = view.findViewById<TextView>(R.id.tvTimes)
+        val chipGroup = view.findViewById<ChipGroup>(R.id.chipGroupCategories)
+        val btnLike = view.findViewById<MaterialButton>(R.id.btnLike)
+        val tvDescription = view.findViewById<TextView>(R.id.tvDescription)
+        val tvIngredientsValue = view.findViewById<TextView>(R.id.tvIngredientsValue)
+        val tvStepsValue = view.findViewById<TextView>(R.id.tvStepsValue)
+
+        btnLike.setOnClickListener { vm.toggleLike() }
+
+        vm.state.observe(viewLifecycleOwner) { s ->
+            s.error?.let { Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show() }
+            val r = s.recipe ?: return@observe
+
+            bindRecipe(
+                r = r,
+                ivRecipe = ivRecipe,
+                tvTitle = tvTitle,
+                tvAuthor = tvAuthor,
+                tvTimes = tvTimes,
+                chipGroup = chipGroup,
+                btnLike = btnLike,
+                tvDescription = tvDescription,
+                tvIngredientsValue = tvIngredientsValue,
+                tvStepsValue = tvStepsValue
+            )
+        }
+
+        vm.start(recipeId)
+    }
+
+    private fun bindRecipe(
+        r: RecipePost,
+        ivRecipe: ImageView,
+        tvTitle: TextView,
+        tvAuthor: TextView,
+        tvTimes: TextView,
+        chipGroup: ChipGroup,
+        btnLike: MaterialButton,
+        tvDescription: TextView,
+        tvIngredientsValue: TextView,
+        tvStepsValue: TextView
+    ) {
+        // תמונה בינתיים placeholder (נחליף בבראנץ הבא ל-URL)
+        ivRecipe.setImageResource(R.drawable.ic_launcher_background)
+
+        tvTitle.text = r.title
+        tvAuthor.text = "by ${r.authorName}"
+
+        val total = (r.prepTimeMin + r.cookTimeMin)
+        tvTimes.text = "Prep: ${r.prepTimeMin} • Cook: ${r.cookTimeMin} • Total: $total"
+
+        chipGroup.removeAllViews()
+        val cats = if (r.categories.isNotEmpty()) r.categories else listOf(r.primaryCategory).filter { it.isNotBlank() }
+        for (c in cats.distinct()) {
+            val chip = Chip(requireContext()).apply {
+                text = c
+                isCheckable = false
+            }
+            chipGroup.addView(chip)
+        }
+
+        val likeText = if (r.isLikedByMe) "UNLIKE" else "LIKE"
+        btnLike.text = "$likeText (${r.likes})"
+
+        tvDescription.text = r.description
+        tvIngredientsValue.text = r.ingredientsSummary
+        tvStepsValue.text = r.stepsSummary
+    }
+}

@@ -9,6 +9,10 @@
     <action
         android:id="@+id/action_global_createRecipeFragment"
         app:destination="@id/createRecipeFragment" />
+    <action
+        android:id="@+id/action_global_recipeDetailsFragment"
+        app:destination="@id/recipeDetailsFragment" />
+
 
     <!-- LOGIN ACTION -->
     <fragment
@@ -86,5 +90,16 @@
         <action
             android:id="@+id/action_myRecipesFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/recipeDetailsFragment"
+        android:name="il.co.or.abicook.presentation.details.RecipeDetailsFragment"
+        android:label="Recipe Details"
+        tools:layout="@layout/fragment_recipe_details">
+
+        <argument
+            android:name="recipeId"
+            app:argType="string" />
     </fragment>
 </navigation>

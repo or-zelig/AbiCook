@@ -94,7 +94,10 @@ class HomeFeedFragment : Fragment() {
         }
 
         // Recycler
-        adapter = RecipePostAdapter()
+        adapter = RecipePostAdapter { post ->
+            val bundle = androidx.core.os.bundleOf("recipeId" to post.id)
+            findNavController().navigate(R.id.action_global_recipeDetailsFragment, bundle)
+        }
         rvFeed.layoutManager = LinearLayoutManager(requireContext())
         rvFeed.adapter = adapter
 
