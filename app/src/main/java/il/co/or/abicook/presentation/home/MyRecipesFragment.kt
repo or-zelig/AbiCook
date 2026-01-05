@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
@@ -57,7 +58,10 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
         }
 
         // Recycler
-        val adapter = RecipePostAdapter()
+        val adapter = RecipePostAdapter{ post ->
+            val bundle = androidx.core.os.bundleOf("recipeId" to post.id)
+            findNavController().navigate(R.id.action_global_recipeDetailsFragment, bundle)
+        }
         rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
 
