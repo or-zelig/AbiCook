@@ -68,14 +68,14 @@ class MainActivity : AppCompatActivity() {
         // להציג/להסתיר BottomNav+FAB לפי מסך
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val showChrome = destination.id == R.id.homeFeedFragment ||
-                    destination.id == R.id.myAreaFragment ||
+                    destination.id == R.id.myRecipesFragment ||
                     destination.id == R.id.createRecipeFragment
 
             bottomNav.isVisible = showChrome
             fab.isVisible = showChrome
 
             // סימון טאב פעיל רק אם הוא אחד מהדפים
-            if (destination.id == R.id.homeFeedFragment || destination.id == R.id.myAreaFragment) {
+            if (destination.id == R.id.homeFeedFragment || destination.id == R.id.myRecipesFragment) {
                 bottomNav.menu.findItem(destination.id)?.isChecked = true
             }
         }

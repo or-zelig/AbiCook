@@ -22,7 +22,9 @@ import il.co.or.abicook.R
 import il.co.or.abicook.data.repository.FirestoreFeedRepository
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class HomeFeedFragment : Fragment() {
 
@@ -62,15 +64,11 @@ class HomeFeedFragment : Fragment() {
         // Results UI
         val tvGreetingResults = view.findViewById<TextView>(R.id.tvGreetingResults)
         val rvFeed = view.findViewById<RecyclerView>(R.id.rvFeed)
-        //val fabCreate = view.findViewById<FloatingActionButton>(R.id.fabCreate)
-        val btnLogout = view.findViewById<MaterialButton>(R.id.btnLogout)
         val btnOpenFilters = view.findViewById<MaterialButton>(R.id.btnOpenFilters)
 
         // Greeting
-        val user = FirebaseAuth.getInstance().currentUser
-        val greeting = "Welcome, ${user?.email ?: "Cooker"}"
-        tvGreetingFilters.text = greeting
-        tvGreetingResults.text = greeting
+        bindUsername(tvGreetingFilters)
+        bindUsername(tvGreetingResults)
 
         // Build category chips (same idea as אצלך):contentReference[oaicite:2]{index=2}
         val categories = resources.getStringArray(R.array.recipe_categories)
@@ -133,8 +131,15 @@ class HomeFeedFragment : Fragment() {
                 )
             )
 
-            // אם אתה טוען פיד כאן:
-            viewModel.loadFeed(categories = selectedCategories, sort = sortOption)
+            val maxTotalTimeMin: Int? =
+                if (switchTotalTime.isChecked) sliderTotalTime.value.toInt() else null
+
+            viewModel.loadFeed(
+                categories = selectedCategories,
+                sort = sortOption,
+                maxTotalTimeMin = maxTotalTimeMin
+            )
+
 
             panelFilters.isVisible = false
             panelResults.isVisible = true
@@ -145,17 +150,6 @@ class HomeFeedFragment : Fragment() {
             panelResults.isVisible = false
             panelFilters.isVisible = true
         }
-
-        /*.setOnClickListener {
-            findNavController().navigate(R.id.action_global_createRecipeFragment)
-
-        }
-
-        btnLogout.setOnClickListener {
-            filterVm.clear()
-            FirebaseAuth.getInstance().signOut()
-            findNavController().navigate(R.id.loginFragment)
-        }*/
 
         viewLifecycleOwner.lifecycleScope.launch {
             filterVm.state.collect { s ->
@@ -183,4 +177,35 @@ class HomeFeedFragment : Fragment() {
             }
         }
     }
+
+    private fun bindUsername(tv: TextView) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            tv.text = "WELCOME"
+            return
+        }
+
+        val uid = user.uid
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val username = try {
+                val snap = FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(uid)
+                    .get()
+                    .await()
+
+                snap.getString("username")
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+            } catch (_: Exception) {
+                null
+            }
+
+            val nameToShow = username ?: user.displayName ?: "User"
+            tv.text = "WELCOME, $nameToShow"
+        }
+    }
+
+
 }

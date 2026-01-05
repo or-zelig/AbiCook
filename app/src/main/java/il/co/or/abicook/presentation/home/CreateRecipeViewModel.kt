@@ -11,8 +11,8 @@ import kotlinx.coroutines.tasks.await
 
 class CreateRecipeViewModel : ViewModel() {
 
-    private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
 
     data class UiState(
         val isLoading: Boolean = false,
@@ -37,9 +37,25 @@ class CreateRecipeViewModel : ViewModel() {
             _uiState.value = UiState(isLoading = true)
 
             try {
-                val userId = auth.currentUser?.uid.orEmpty()
+                val user = auth.currentUser ?: throw Exception("Not logged in")
+                val uid = user.uid
 
-                val doc = mapOf(
+                // נביא username מה- users/{uid} אם קיים (מה-signUp שלך)
+                val usernameFromDb = try {
+                    firestore.collection("users").document(uid).get().await()
+                        .getString("username")
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                } catch (_: Exception) {
+                    null
+                }
+
+                val authorName = usernameFromDb
+                    ?: user.displayName
+                    ?: user.email
+                    ?: "Unknown"
+
+                val data = hashMapOf<String, Any?>(
                     "title" to title.trim(),
                     "description" to description.trim(),
                     "ingredientsSummary" to ingredientsSummary.trim(),
@@ -47,19 +63,24 @@ class CreateRecipeViewModel : ViewModel() {
 
                     "primaryCategory" to primaryCategory.trim(),
                     "categories" to categories,
+
                     "prepTimeMin" to prepTimeMin,
                     "cookTimeMin" to cookTimeMin,
+                    "totalTimeMin" to (prepTimeMin + cookTimeMin),
 
-                    "imageUrl" to null,
                     "createdAtMillis" to System.currentTimeMillis(),
-                    "authorId" to userId,
-                    "authorName" to if (userId.isBlank()) "Anonymous" else "User",
 
-                    "likes" to 0,
-                    "commentsCount" to 0
+                    "authorId" to uid,
+                    "userId" to uid,
+                    "authorName" to authorName,
+
+                    "likes" to 0L,
+                    "commentsCount" to 0L,
+
+                    "imageUrl" to null
                 )
 
-                firestore.collection("recipes").add(doc).await()
+                firestore.collection("recipes").add(data).await()
 
                 _uiState.value = UiState(publishSuccess = true)
             } catch (e: Exception) {
