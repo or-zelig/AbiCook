@@ -12,6 +12,9 @@
     <action
         android:id="@+id/action_global_recipeDetailsFragment"
         app:destination="@id/recipeDetailsFragment" />
+    <action
+        android:id="@+id/action_global_createRecipeWizard"
+        app:destination="@id/createRecipeBasicInfoFragment" />
 
 
     <!-- LOGIN ACTION -->
@@ -102,4 +105,31 @@
             android:name="recipeId"
             app:argType="string" />
     </fragment>
+
+    <fragment
+        android:id="@+id/createRecipeBasicInfoFragment"
+        android:name="il.co.or.abicook.presentation.create.CreateRecipeBasicInfoFragment"
+        android:label="Create Recipe 1"
+        tools:layout="@layout/fragment_create_recipe_basic_info">
+        <action
+            android:id="@+id/action_basicInfo_to_ingredients"
+            app:destination="@id/createRecipeIngredientsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createRecipeIngredientsFragment"
+        android:name="il.co.or.abicook.presentation.create.CreateRecipeIngredientsFragment"
+        android:label="Create Recipe 2"
+        tools:layout="@layout/fragment_create_recipe_ingredients">
+        <action
+            android:id="@+id/action_ingredients_to_steps"
+            app:destination="@id/createRecipeStepsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createRecipeStepsFragment"
+        android:name="il.co.or.abicook.presentation.create.CreateRecipeStepsFragment"
+        android:label="Create Recipe 3"
+        tools:layout="@layout/fragment_create_recipe_steps" />
+
 </navigation>

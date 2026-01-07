@@ -52,14 +52,12 @@ class FirestoreRecipeDetailsRepository(
 
         val likeReg = recipeRef.collection("likes").document(uid).addSnapshotListener { likeSnap, e ->
             if (e != null) {
-                // לא מפיל את המסך בגלל לייק
                 return@addSnapshotListener
             }
             isLikedByMe = likeSnap?.exists() == true
             emitIfReady()
         }
 
-        // מחזירים Listener אחד שמסיר את שניהם
         return ListenerRegistration {
             recipeReg.remove()
             likeReg.remove()
