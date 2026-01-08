@@ -30,10 +30,14 @@ class MainActivity : AppCompatActivity() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
         val fab = findViewById<FloatingActionButton>(R.id.fabCreateRecipe)
 
-        // + מכל מקום -> CreateRecipe
         fab.setOnClickListener {
-            if (navController.currentDestination?.id != R.id.createRecipeFragment) {
-                navController.navigate(R.id.action_global_createRecipeFragment)
+            val dest = navController.currentDestination?.id
+            val isAlreadyInWizard = dest == R.id.createRecipeBasicInfoFragment ||
+                    dest == R.id.createRecipeIngredientsFragment ||
+                    dest == R.id.createRecipeStepsFragment
+
+            if (!isAlreadyInWizard) {
+                navController.navigate(R.id.action_global_createRecipeWizard)
             }
         }
 
@@ -65,11 +69,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // להציג/להסתיר BottomNav+FAB לפי מסך
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val showChrome = destination.id == R.id.homeFeedFragment ||
-                    destination.id == R.id.myRecipesFragment ||
-                    destination.id == R.id.createRecipeFragment
+                    destination.id == R.id.myRecipesFragment
 
             bottomNav.isVisible = showChrome
             fab.isVisible = showChrome
