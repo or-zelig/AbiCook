@@ -98,6 +98,10 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
             }
         }
 
+        val hasResults = vm.uiState.value?.recipes?.isNotEmpty() == true
+        panelFilters.isVisible = !hasResults
+        panelResults.isVisible = hasResults
+
         btnEditFilters.setOnClickListener {
             panelResults.isVisible = false
             panelFilters.isVisible = true
@@ -121,8 +125,9 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
             panelResults.isVisible = true
         }
 
-        // ✅ Auto load on open (real server data)
-        vm.loadMyRecipes(categories = emptyList(), sort = FeedSort.NEWEST)
+        if (savedInstanceState == null && vm.uiState.value.recipes.isEmpty()) {
+            vm.loadMyRecipes(categories = emptyList(), sort = FeedSort.NEWEST)
+        }
     }
 
     private fun bindUsername(tv: TextView) {

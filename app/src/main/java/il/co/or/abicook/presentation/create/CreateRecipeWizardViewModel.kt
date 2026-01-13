@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import il.co.or.abicook.data.repository.FirestoreRecipeDataRepository
 import il.co.or.abicook.data.repository.StorageRepository
 import il.co.or.abicook.domain.model.RecipePost
+import il.co.or.abicook.domain.model.RecipeStep
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -247,6 +248,10 @@ class CreateRecipeWizardViewModel : ViewModel() {
                     }
                 }
 
+                val stepsForPost = stepsUploaded
+                    .filter { it.text.isNotBlank() }
+                    .map { s -> RecipeStep(text = s.text, imageUrl = s.uploadedImageUrl) }
+
                 val d = _state.value.draft
                 val post = RecipePost(
                     id = recipeId,
@@ -268,7 +273,8 @@ class CreateRecipeWizardViewModel : ViewModel() {
                     authorName = user.displayName ?: "User",
                     createdAtMillis = System.currentTimeMillis(),
                     likes = 0,
-                    commentsCount = 0
+                    commentsCount = 0,
+                    steps = stepsForPost,
                 )
 
                 // Save to Firestore

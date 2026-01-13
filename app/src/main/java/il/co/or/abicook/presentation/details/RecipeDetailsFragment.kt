@@ -8,6 +8,9 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
@@ -21,6 +24,10 @@ class RecipeDetailsFragment : Fragment(R.layout.fragment_recipe_details) {
     private val vm: RecipeDetailsViewModel by viewModels {
         RecipeDetailsViewModelFactory(FirestoreRecipeDetailsRepository())
     }
+
+    // ✅ moved to fragment scope
+    private lateinit var rvSteps: RecyclerView
+    private val stepsAdapter = RecipeStepsAdapter()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -44,6 +51,12 @@ class RecipeDetailsFragment : Fragment(R.layout.fragment_recipe_details) {
         val tvDescription = view.findViewById<TextView>(R.id.tvDescription)
         val tvIngredientsValue = view.findViewById<TextView>(R.id.tvIngredientsValue)
         val tvStepsValue = view.findViewById<TextView>(R.id.tvStepsValue)
+
+        // ✅ use fragment property
+        rvSteps = view.findViewById(R.id.rvSteps)
+        rvSteps.layoutManager = LinearLayoutManager(requireContext())
+        rvSteps.isNestedScrollingEnabled = false
+        rvSteps.adapter = stepsAdapter
 
         btnLike.setOnClickListener { vm.toggleLike() }
 
@@ -80,9 +93,6 @@ class RecipeDetailsFragment : Fragment(R.layout.fragment_recipe_details) {
         tvIngredientsValue: TextView,
         tvStepsValue: TextView
     ) {
-        // תמונה בינתיים placeholder (נחליף בבראנץ הבא ל-URL)
-        ivRecipe.setImageResource(R.drawable.ic_launcher_background)
-
         tvTitle.text = r.title
         tvAuthor.text = "by ${r.authorName}"
 
@@ -92,11 +102,12 @@ class RecipeDetailsFragment : Fragment(R.layout.fragment_recipe_details) {
         chipGroup.removeAllViews()
         val cats = if (r.categories.isNotEmpty()) r.categories else listOf(r.primaryCategory).filter { it.isNotBlank() }
         for (c in cats.distinct()) {
-            val chip = Chip(requireContext()).apply {
-                text = c
-                isCheckable = false
-            }
-            chipGroup.addView(chip)
+            chipGroup.addView(
+                Chip(requireContext()).apply {
+                    text = c
+                    isCheckable = false
+                }
+            )
         }
 
         val likeText = if (r.isLikedByMe) "UNLIKE" else "LIKE"
@@ -104,6 +115,23 @@ class RecipeDetailsFragment : Fragment(R.layout.fragment_recipe_details) {
 
         tvDescription.text = r.description
         tvIngredientsValue.text = r.ingredientsSummary
-        tvStepsValue.text = r.stepsSummary
+
+        // ✅ cover
+        Glide.with(ivRecipe)
+            .load(r.imageUrl)
+            .placeholder(R.drawable.ic_launcher_background)
+            .error(R.drawable.ic_launcher_background)
+            .into(ivRecipe)
+
+        // ✅ steps with images if available, otherwise fallback
+        if (r.steps.isNotEmpty()) {
+            tvStepsValue.visibility = View.GONE
+            rvSteps.visibility = View.VISIBLE
+            stepsAdapter.submitList(r.steps)
+        } else {
+            rvSteps.visibility = View.GONE
+            tvStepsValue.visibility = View.VISIBLE
+            tvStepsValue.text = r.stepsSummary
+        }
     }
 }

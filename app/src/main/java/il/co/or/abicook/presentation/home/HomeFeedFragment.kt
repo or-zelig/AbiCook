@@ -1,6 +1,7 @@
 package il.co.or.abicook.presentation.home
 
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,7 +33,6 @@ class HomeFeedFragment : Fragment() {
         HomeFeedViewModelFactory(feedRepository = FirestoreFeedRepository())
     }
     private val filterVm: FeedFilterViewModel by activityViewModels()
-
 
     private lateinit var adapter: RecipePostAdapter
 
@@ -108,9 +108,9 @@ class HomeFeedFragment : Fragment() {
             adapter.submitList(state.posts)
         }
 
-        // Default view = Filters
-        panelFilters.isVisible = true
-        panelResults.isVisible = false
+        val hasResults = viewModel.uiState.value?.posts?.isNotEmpty() == true
+        panelFilters.isVisible = !hasResults
+        panelResults.isVisible = hasResults
 
         btnShow.setOnClickListener {
 
@@ -150,8 +150,8 @@ class HomeFeedFragment : Fragment() {
 
 
         btnOpenFilters.setOnClickListener {
-            panelResults.isVisible = false
             panelFilters.isVisible = true
+            panelResults.isVisible = false
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
