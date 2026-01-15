@@ -60,4 +60,10 @@ class StorageRepository(
 
         return UploadResult(downloadUrl = url, path = ref.path)
     }
+
+    suspend fun uploadRecipeCoverImage(recipeId: String, localUri: Uri): UploadResult =
+        uploadRecipeCover(recipeId, localUri)
+
+    suspend fun uploadRecipeStepImage(recipeId: String, stepId: String, localUri: Uri): UploadResult =
+        uploadStepImage(recipeId, stepId, localUri)
 }

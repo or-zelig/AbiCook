@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import il.co.or.abicook.data.repository.FirestoreRecipeDataRepository
 import il.co.or.abicook.data.repository.StorageRepository
 import il.co.or.abicook.domain.model.RecipePost
+import il.co.or.abicook.domain.model.RecipeStep
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -210,7 +211,7 @@ class CreateRecipeWizardViewModel : ViewModel() {
 
     fun validateStep3(): Boolean {
         val d = _state.value.draft
-        val hasAtLeastOne = d.steps.any { it.text.isNotBlank() }
+        val hasAtLeastOne = d.steps.any { it.text.isNotBlank() || !it.localImageUri.isNullOrBlank() }
         val err = if (!hasAtLeastOne) "Please add at least one step" else null
         _state.update { it.copy(errorMessage = err) }
         return err == null
@@ -230,7 +231,7 @@ class CreateRecipeWizardViewModel : ViewModel() {
                 // 1) Upload cover if exists
                 var coverUrl: String? = null
                 _state.value.draft.coverUri?.let { uriStr ->
-                    val res = storageRepo.uploadRecipeCover(recipeId, Uri.parse(uriStr))
+                    val res = storageRepo.uploadRecipeCoverImage(recipeId, Uri.parse(uriStr))
                     coverUrl = res.downloadUrl
                 }
 
@@ -238,14 +239,31 @@ class CreateRecipeWizardViewModel : ViewModel() {
                 val stepsUploaded = _state.value.draft.steps.map { step ->
                     if (step.localImageUri.isNullOrBlank()) step
                     else {
-                        val res = storageRepo.uploadStepImage(
-                            recipeId = recipeId,
-                            stepId = step.id,
-                            localUri = Uri.parse(step.localImageUri)
+                        val res = storageRepo.uploadRecipeStepImage(
+                            recipeId,
+                            step.id,
+                            Uri.parse(step.localImageUri)
                         )
                         step.copy(uploadedImageUrl = res.downloadUrl)
                     }
                 }
+
+                // ✅ keep steps that have text OR image
+                val validSteps = stepsUploaded
+                    .filter { it.text.isNotBlank() || !it.uploadedImageUrl.isNullOrBlank() }
+
+                // ✅ steps list for details (with images)
+                val stepsForPost = validSteps.map { s ->
+                    RecipeStep(
+                        text = s.text,
+                        imageUrl = s.uploadedImageUrl
+                    )
+                }
+
+                // ✅ summary text fallback
+                val stepsSummaryText = validSteps
+                    .mapIndexed { i, s -> "${i + 1}. ${s.text.ifBlank { "(step)" }}" }
+                    .joinToString("\n")
 
                 val d = _state.value.draft
                 val post = RecipePost(
@@ -256,13 +274,14 @@ class CreateRecipeWizardViewModel : ViewModel() {
                     cookTimeMin = d.cookTimeMin,
                     primaryCategory = d.primaryCategory,
                     categories = d.categories,
+
                     ingredientsSummary = d.ingredients
                         .filter { it.name.isNotBlank() }
                         .joinToString("\n") { "${it.amount} ${it.unit} - ${it.name}" },
-                    stepsSummary = stepsUploaded
-                        .filter { it.text.isNotBlank() }
-                        .mapIndexed { i, s -> "${i + 1}. ${s.text}" }
-                        .joinToString("\n"),
+
+                    stepsSummary = stepsSummaryText,
+                    steps = stepsForPost,              // ✅ THIS is the important part
+
                     imageUrl = coverUrl,
                     authorId = user.uid,
                     authorName = user.displayName ?: "User",
