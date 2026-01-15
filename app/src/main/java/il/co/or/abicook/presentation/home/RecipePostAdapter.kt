@@ -10,9 +10,11 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import il.co.or.abicook.R
 import il.co.or.abicook.domain.model.RecipePost
+import com.bumptech.glide.Glide
 
-class RecipePostAdapter :
-    ListAdapter<RecipePost, RecipePostAdapter.PostViewHolder>(DiffCallback) {
+class RecipePostAdapter(
+    private val onItemClick: ((RecipePost) -> Unit)? = null
+) : ListAdapter<RecipePost, RecipePostAdapter.PostViewHolder>(DiffCallback) {
 
     object DiffCallback : DiffUtil.ItemCallback<RecipePost>() {
         override fun areItemsTheSame(oldItem: RecipePost, newItem: RecipePost): Boolean =
@@ -29,11 +31,24 @@ class RecipePostAdapter :
         private val ivImage: ImageView = itemView.findViewById(R.id.ivImage)
 
         fun bind(item: RecipePost) {
+
+            val url = item.imageUrl
+            if (url.isNullOrBlank()) {
+                Glide.with(ivImage).clear(ivImage)
+                ivImage.setImageResource(R.drawable.ic_launcher_background)
+            } else {
+                Glide.with(ivImage)
+                    .load(url)
+                    .placeholder(R.drawable.ic_launcher_background)
+                    .error(R.drawable.ic_launcher_background)
+                    .into(ivImage)
+            }
+
             tvTitle.text = item.title
             tvAuthor.text = "by ${item.authorName}"
             tvMeta.text = "${item.likes} likes • ${item.commentsCount} comments"
 
-            ivImage.setImageResource(R.drawable.ic_launcher_background)
+            itemView.setOnClickListener { onItemClick?.invoke(item) }
         }
     }
 

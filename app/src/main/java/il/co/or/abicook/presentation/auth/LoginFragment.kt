@@ -46,7 +46,15 @@ class LoginFragment : Fragment() {
         // אם כבר מחובר – דלג ישר ל-Home
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser != null) {
-            findNavController().navigate(R.id.action_loginFragment_to_homeFeedFragment)
+            findNavController().navigate(
+                R.id.homeFeedFragment,
+                null,
+                androidx.navigation.navOptions {
+                    popUpTo(R.id.loginFragment) { inclusive = true }
+                    launchSingleTop = true
+                }
+            )
+
             return
         }
 
@@ -68,8 +76,14 @@ class LoginFragment : Fragment() {
                 ).show()
 
                 findNavController().navigate(
-                    R.id.action_loginFragment_to_homeFeedFragment
+                    R.id.homeFeedFragment,
+                    null,
+                    androidx.navigation.navOptions {
+                        popUpTo(R.id.loginFragment) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 )
+
             }
         }
 

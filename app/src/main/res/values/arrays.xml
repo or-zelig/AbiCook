@@ -5,10 +5,9 @@
         <item>g</item>
         <item>kg</item>
         <item>ml</item>
-        <item>L</item>
-        <item>tsp</item>
-        <item>tbsp</item>
         <item>cup</item>
+        <item>tbsp</item>
+        <item>tsp</item>
         <item>piece</item>
     </string-array>
 
@@ -21,7 +20,6 @@
         <item>Vegan</item>
         <item>Vegetarian</item>
         <item>Gluten free</item>
-        <item>Quick (under 30 min)</item>
     </string-array>
 
 </resources>
