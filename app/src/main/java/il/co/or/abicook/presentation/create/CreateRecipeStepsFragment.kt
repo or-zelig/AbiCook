@@ -82,7 +82,7 @@ class CreateRecipeStepsFragment : Fragment(R.layout.fragment_create_recipe_steps
 
                     if (s.publishSuccess) {
                         Toast.makeText(requireContext(), "Published!", Toast.LENGTH_SHORT).show()
-                        vm.consumePublishSuccess()
+                        vm.resetAfterPublish()
                         findNavController().popBackStack(R.id.createRecipeBasicInfoFragment, true)
                     }
                 }

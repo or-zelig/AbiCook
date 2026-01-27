@@ -7,7 +7,7 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,7 +24,8 @@ import kotlinx.coroutines.tasks.await
 
 class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
 
-    private val vm: MyRecipesViewModel by viewModels()
+    // ✅ חשוב: Activity scope כדי שנוכל לאפס בלוגאאוט מתוך MainActivity
+    private val vm: MyRecipesViewModel by activityViewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -42,10 +43,8 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
         val progress = view.findViewById<ProgressBar>(R.id.progress)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmpty)
 
-        // ✅ Header: show username (Firestore users/{uid}.username)
         bindUsername(tvUser)
 
-        // Build category chips
         val categoriesArr = resources.getStringArray(R.array.recipe_categories)
         chipGroup.removeAllViews()
         categoriesArr.forEach { c ->
@@ -57,18 +56,22 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
             )
         }
 
-        // Recycler
-        val adapter = RecipePostAdapter{ post ->
+        val adapter = RecipePostAdapter { post ->
             val bundle = androidx.core.os.bundleOf("recipeId" to post.id)
             findNavController().navigate(R.id.action_global_recipeDetailsFragment, bundle)
         }
         rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
 
-        // Observe state
         viewLifecycleOwner.lifecycleScope.launch {
             vm.uiState.collect { s ->
                 progress.isVisible = s.isLoading || s.isRefreshing
+
+                if (s.notLoggedIn) {
+                    // ✅ ניקוי UI פילטרים אם נשארו מה-ViewState
+                    chipGroup.clearCheck()
+                    rgSort.check(R.id.rbNewest) // ודא שיש rbNewest אצלך ב-layout
+                }
 
                 when {
                     s.notLoggedIn -> {
@@ -83,22 +86,14 @@ class MyRecipesFragment : Fragment(R.layout.fragment_my_recipes) {
                         tvEmpty.isVisible = true
                         tvEmpty.text = "No recipes yet"
                     }
-                    else -> {
-                        tvEmpty.isVisible = false
-                    }
-                }
-
-                // (optional) show a small hint if we had to fallback locally due to missing index
-                if (s.usedLocalFallback && s.error == null && s.recipes.isNotEmpty()) {
-                    // you can replace with Snackbar/Toast if you want
-                    // tvEmpty.text = "Showing results (filtered locally - server index missing)"
+                    else -> tvEmpty.isVisible = false
                 }
 
                 adapter.submitList(s.recipes)
             }
         }
 
-        val hasResults = vm.uiState.value?.recipes?.isNotEmpty() == true
+        val hasResults = vm.uiState.value.recipes.isNotEmpty()
         panelFilters.isVisible = !hasResults
         panelResults.isVisible = hasResults
 

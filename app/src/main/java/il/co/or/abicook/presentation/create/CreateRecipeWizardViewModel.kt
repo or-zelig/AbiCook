@@ -66,6 +66,29 @@ class CreateRecipeWizardViewModel : ViewModel() {
     fun clearError() = _state.update { it.copy(errorMessage = null) }
     fun consumePublishSuccess() = _state.update { it.copy(publishSuccess = false) }
 
+    // ✅ חדש: איפוס draft (רק יצירת מתכון)
+    fun resetDraft() {
+        _state.value = CreateRecipeWizardState()
+    }
+
+    // ✅ חדש: איפוס מלא (כרגע זה אותו דבר כמו resetDraft, אבל נשאר ברור סמנטית ל-Logout)
+    fun resetAll() {
+        resetDraft()
+    }
+
+    /**
+     * ✅ חדש: אחרי publish – לאפס את הטופס + לנקות publishSuccess
+     * (כדי שהפעם הבאה שתפתח את ה-wizard תהיה נקייה)
+     */
+    fun resetAfterPublish() {
+        _state.value = CreateRecipeWizardState(
+            draft = CreateRecipeDraft(),
+            isPublishing = false,
+            publishSuccess = false,
+            errorMessage = null
+        )
+    }
+
     // ---------- Step 1: basic info ----------
     fun setCoverUri(uri: Uri?) {
         _state.update { s -> s.copy(draft = s.draft.copy(coverUri = uri?.toString())) }

@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 data class MyRecipesUiState(
-    val isLoading: Boolean = false,        // first load (no cache)
-    val isRefreshing: Boolean = false,     // refresh while showing cached list
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val recipes: List<RecipePost> = emptyList(),
     val error: String? = null,
     val notLoggedIn: Boolean = false,
@@ -42,7 +42,6 @@ class MyRecipesViewModel(
 
         val hasCache = _uiState.value.recipes.isNotEmpty()
 
-        // SWR: אם יש Cache, מציגים אותו ומרעננים מהשרת
         _uiState.value = _uiState.value.copy(
             isLoading = !hasCache || force,
             isRefreshing = hasCache && !force,
@@ -59,11 +58,9 @@ class MyRecipesViewModel(
                     lastUpdatedMillis = System.currentTimeMillis()
                 )
             } catch (e: Exception) {
-                // אם יש cache—נשאיר אותו ונציג שגיאה
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    error = e.message ?: "Unknown error"
+                _uiState.value = MyRecipesUiState(
+                    recipes = _uiState.value.recipes,
+                    error = e.message ?: "Failed to load recipes"
                 )
             }
         }
@@ -71,5 +68,31 @@ class MyRecipesViewModel(
 
     fun refresh() {
         loadMyRecipes(lastCategories, lastSort, force = true)
+    }
+
+    /**
+     * ✅ Clear filters (UI action) + reload
+     */
+    fun clearFiltersAndReload() {
+        lastCategories = emptyList()
+        lastSort = FeedSort.NEWEST
+        loadMyRecipes(lastCategories, lastSort, force = true)
+    }
+
+    /**
+     * ✅ Logout: לאפס הכל (פילטר + רשימה + מצב)
+     */
+    fun resetForLogout() {
+        lastCategories = emptyList()
+        lastSort = FeedSort.NEWEST
+        _uiState.value = MyRecipesUiState(
+            recipes = emptyList(),
+            error = null,
+            notLoggedIn = true,
+            isLoading = false,
+            isRefreshing = false,
+            usedLocalFallback = false,
+            lastUpdatedMillis = null
+        )
     }
 }

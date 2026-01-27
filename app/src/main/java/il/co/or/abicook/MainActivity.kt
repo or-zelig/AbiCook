@@ -11,14 +11,17 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.auth.FirebaseAuth
+import il.co.or.abicook.presentation.create.CreateRecipeWizardViewModel
 import il.co.or.abicook.presentation.home.FeedFilterViewModel
+import il.co.or.abicook.presentation.home.MyRecipesViewModel
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var navController: NavController
 
-    // כדי שנוכל לעשות clear() בפילטר ב-Logout
     private val filterVm: FeedFilterViewModel by viewModels()
+    private val myRecipesVm: MyRecipesViewModel by viewModels()
+    private val createVm: CreateRecipeWizardViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,8 +92,10 @@ class MainActivity : AppCompatActivity() {
             .setMessage("Are you sure you want to logout?")
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Logout") { _, _ ->
-                // ניקוי פילטרים
+
                 filterVm.clear()
+                createVm.resetAll()
+                myRecipesVm.resetForLogout()
 
                 // יציאה מהמשתמש
                 FirebaseAuth.getInstance().signOut()
